@@ -1,0 +1,81 @@
+# Text-to-SQL Model Configuration
+
+# Model Configuration
+model:
+  base_model_name: "defog/sqlcoder-7b"  # Options: codellama/CodeLlama-7b-Instruct-hf, microsoft/DialoGPT-medium
+  model_output_dir: "./models/text-to-sql-checkpoint"
+  final_model_dir: "./models/text-to-sql-final"
+  
+# Training Configuration
+training:
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2e-4
+  num_epochs: 3
+  max_length: 1024
+  validation_split: 0.1
+  warmup_steps: 100
+  weight_decay: 0.01
+  adam_epsilon: 1e-8
+  max_grad_norm: 1.0
+  
+# LoRA Configuration
+lora:
+  r: 8
+  alpha: 32
+  dropout: 0.1
+  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj"]
+  bias: "none"
+  task_type: "CAUSAL_LM"
+  
+# Quantization Configuration
+quantization:
+  use_4bit: true
+  bnb_4bit_compute_dtype: "float16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+  
+# Dataset Configuration
+dataset:
+  name: "gretelai/synthetic_text_to_sql"
+  max_samples: null  # Set to limit samples for testing
+  cache_dir: "./cache"
+  preprocessing_num_workers: 4
+  
+# Evaluation Configuration
+evaluation:
+  eval_steps: 500
+  save_steps: 500
+  logging_steps: 100
+  save_total_limit: 3
+  metric_for_best_model: "eval_loss"
+  load_best_model_at_end: true
+  
+# Ollama Configuration
+ollama:
+  model_name: "text-to-sql"
+  modelfile_path: "./Modelfile"
+  temperature: 0.1
+  top_p: 0.9
+  top_k: 40
+  repeat_penalty: 1.1
+  
+# Hardware Configuration
+hardware:
+  device_map: "auto"
+  torch_dtype: "float16"
+  use_flash_attention: false  # Set to true if available
+  gradient_checkpointing: true
+  
+# Logging Configuration
+logging:
+  level: "INFO"
+  log_file: "text_to_sql_training.log"
+  wandb_project: null  # Set to enable wandb logging
+  
+# Output Configuration
+output:
+  save_processed_data: true
+  processed_data_dir: "./processed_data"
+  evaluation_results_file: "evaluation_results.json"
+  model_metrics_file: "model_metrics.json"

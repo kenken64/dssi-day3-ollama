@@ -1,0 +1,352 @@
+# Docker Compose for Text-to-SQL Model Environment
+version: '3.8'
+
+services:
+  # Main training service
+  trainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: training
+    container_name: text-to-sql-trainer
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+      - TRANSFORMERS_CACHE=/app/cache/transformers
+      - HF_HOME=/app/cache/huggingface
+      - PYTHONPATH=/app
+    volumes:
+      - ./models:/app/models
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+      - ./outputs:/app/outputs
+      - ./processed_data:/app/processed_data
+      - ./config.yaml:/app/config.yaml
+    command: python text_to_sql_train.py --mode train --max-samples 5000
+    restart: unless-stopped
+    networks:
+      - text-to-sql-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Ollama service for model deployment
+  ollama:
+    image: ollama/ollama:latest
+    container_name: text-to-sql-ollama
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    networks:
+      - text-to-sql-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Development environment with Jupyter
+  development:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: text-to-sql-dev
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=text-to-sql-dev
+    volumes:
+      - .:/app
+      - jupyter_data:/app/notebooks
+    ports:
+      - "8888:8888"
+      - "6006:6006"  # TensorBoard
+    command: jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='text-to-sql-dev'
+    restart: unless-stopped
+    networks:
+      - text-to-sql-net
+    depends_on:
+      - ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Testing service
+  tester:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: text-to-sql-tester
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./models:/app/models:ro
+      - ./config.yaml:/app/config.yaml:ro
+      - ./test_results:/app/test_results
+    command: python test.py --config config.yaml --output /app/test_results/test_results.json
+    networks:
+      - text-to-sql-net
+    depends_on:
+      - ollama
+      - trainer
+    profiles:
+      - testing
+
+  # Model deployment service
+  deployer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: inference
+    container_name: text-to-sql-deployer
+    environment:
+      - PYTHONPATH=/app
+      - OLLAMA_HOST=ollama:11434
+    volumes:
+      - ./models:/app/models:ro
+      - ./config.yaml:/app/config.yaml:ro
+    command: python deploy.py --config config.yaml
+    networks:
+      - text-to-sql-net
+    depends_on:
+      - ollama
+    profiles:
+      - deployment
+
+  # Monitoring service with Grafana
+  monitoring:
+    image: grafana/grafana:latest
+    container_name: text-to-sql-monitoring
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - text-to-sql-net
+    profiles:
+      - monitoring
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: text-to-sql-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - text-to-sql-net
+    profiles:
+      - monitoring
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: text-to-sql-redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - text-to-sql-net
+    profiles:
+      - caching
+    command: redis-server --appendonly yes
+
+  # PostgreSQL for metadata storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: text-to-sql-postgres
+    environment:
+      - POSTGRES_DB=text_to_sql
+      - POSTGRES_USER=textosql
+      - POSTGRES_PASSWORD=textosql123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - text-to-sql-net
+    profiles:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U textosql"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API service for model inference
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: inference
+    container_name: text-to-sql-api
+    environment:
+      - PYTHONPATH=/app
+      - OLLAMA_HOST=ollama:11434
+      - REDIS_HOST=redis:6379
+      - DATABASE_URL=postgresql://textosql:textosql123@postgres:5432/text_to_sql
+    volumes:
+      - ./api:/app/api
+      - ./config.yaml:/app/config.yaml:ro
+    ports:
+      - "8000:8000"
+    command: python api/main.py
+    restart: unless-stopped
+    networks:
+      - text-to-sql-net
+    depends_on:
+      - ollama
+      - redis
+      - postgres
+    profiles:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Web UI service
+  web-ui:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile
+    container_name: text-to-sql-web-ui
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+    networks:
+      - text-to-sql-net
+    depends_on:
+      - api
+    profiles:
+      - ui
+
+# Named volumes for data persistence
+volumes:
+  ollama_data:
+    driver: local
+  jupyter_data:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# Custom network
+networks:
+  text-to-sql-net:
+    driver: bridge
+
+# Additional configuration for different deployment scenarios
+x-common-variables: &common-variables
+  TRANSFORMERS_CACHE: /app/cache/transformers
+  HF_HOME: /app/cache/huggingface
+  PYTHONPATH: /app
+
+# Development override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+---
+# docker-compose.dev.yml content would go here for development overrides
+version: '3.8'
+
+services:
+  trainer:
+    <<: *common-variables
+    command: python text_to_sql_train.py --mode train --max-samples 1000
+    volumes:
+      - .:/app  # Mount entire directory for development
+    environment:
+      - DEBUG=true
+    
+  development:
+    volumes:
+      - .:/app  # Full source code mount for development
+    environment:
+      - JUPYTER_TOKEN=dev123
+
+# Production override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+---
+version: '3.8'
+
+services:
+  trainer:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 32G
+        reservations:
+          memory: 16G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+  
+  ollama:
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 16G
+        reservations:
+          memory: 8G
+
+  api:
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G

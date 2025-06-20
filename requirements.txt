@@ -1,0 +1,41 @@
+# Core ML and NLP libraries
+torch>=2.0.0
+transformers>=4.36.0
+datasets>=2.14.0
+tokenizers>=0.15.0
+accelerate>=0.24.0
+peft>=0.7.0
+bitsandbytes>=0.41.0
+evaluate>=0.4.0
+
+# Data processing and utilities
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+scipy>=1.10.0
+
+# Logging and configuration
+pyyaml>=6.0
+tqdm>=4.65.0
+wandb>=0.16.0  # Optional: for experiment tracking
+
+# Development and testing
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0
+jupyter>=1.0.0
+
+# Optional: for advanced features
+sqlparse>=0.4.4  # SQL parsing and validation
+psycopg2-binary>=2.9.0  # PostgreSQL adapter (optional)
+mysql-connector-python>=8.0.0  # MySQL adapter (optional)
+sqlite3  # Built-in with Python
+
+# Memory profiling (optional)
+memory-profiler>=0.61.0
+psutil>=5.9.0
+
+# Visualization (optional)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.17.0
