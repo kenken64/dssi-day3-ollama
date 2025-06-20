@@ -1,0 +1,212 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.env/
+conda-env/
+.conda/
+
+# PyTorch and Model Files
+*.pt
+*.pth
+*.bin
+*.safetensors
+pytorch_model*.bin
+model.safetensors
+training_args.bin
+optimizer.pt
+scheduler.pt
+rng_state.pth
+
+# Large Model Directories
+text-to-sql-model/
+text-to-sql-final/
+models/
+checkpoints/
+saved_models/
+model_cache/
+transformers_cache/
+huggingface_cache/
+
+# Ollama Model Files
+Modelfile
+*.gguf
+*.ggml
+
+# Training Logs and Outputs
+logs/
+runs/
+wandb/
+tensorboard_logs/
+*.log
+training_*.log
+text_to_sql_training.log
+
+# Data and Dataset Files
+data/
+datasets/
+*.csv
+*.json
+*.jsonl
+*.parquet
+*.arrow
+
+# Configuration with Secrets
+.env
+.env.local
+.env.*.local
+config_local.yaml
+secrets.yaml
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Documentation
+docs/_build/
+site/
+
+# Temporary Files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# GPU Memory Dumps
+*.nvvp
+*.nvprof
+
+# Profiling
+*.prof
+*.profile
+
+# Large Binary Files (add specific patterns as needed)
+*.zip
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+
+# Evaluation Results
+evaluation_results.json
+test_results.json
+benchmark_results.json
+
+# Cache Directories
+.cache/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Output Files
+output/
+results/
+experiments/
+
+# Local Development
+local_config.yaml
+dev_config.yaml
+test_config.yaml
+
+# Backup Files
+*.bak
+*.backup
+*.old
+*~
+
+# Node.js (if using any JS tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Conda
+.conda/
+*.conda
+
+# Weights & Biases
+wandb/
+
+# MLflow
+mlruns/
+
+# Large Text Files
+*.txt.large
+*.log.large
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# Compressed Models
+*.zip
+*.tar
+*.gz
+
+# Specific to this project
+adapter_config.json
+adapter_model.bin
+adapter_model.safetensors
+training_state.json

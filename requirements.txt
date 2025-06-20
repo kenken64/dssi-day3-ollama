@@ -29,7 +29,7 @@ jupyter>=1.0.0
 sqlparse>=0.4.4  # SQL parsing and validation
 psycopg2-binary>=2.9.0  # PostgreSQL adapter (optional)
 mysql-connector-python>=8.0.0  # MySQL adapter (optional)
-sqlite3  # Built-in with Python
+# sqlite3 is built-in with Python - no need to install
 
 # Memory profiling (optional)
 memory-profiler>=0.61.0
