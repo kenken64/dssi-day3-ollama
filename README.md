@@ -134,6 +134,10 @@ Request: Find all employees in the Engineering department with salary above 7500
 
 ### Interactive Demo
 ```bash
+# NEW: Web interface (recommended)
+python start_webapp.py
+
+# Or command line demo
 python deploy.py --demo
 ```
 
@@ -410,6 +414,41 @@ python text_to_sql_train.py --base-model Salesforce/codet5p-770m
 # - Optimized batch sizes
 ```
 
+#### 7. Token Generation Loop Issue (NEW)
+```bash
+# If you see repeating { end }<|end|> tokens:
+
+# Quick fix - use the automated fix script
+python fix_ollama_tokens.py
+
+# Manual fix steps:
+# 1. Delete the problematic model
+ollama rm text-to-sql
+
+# 2. Recreate with fixed Modelfile
+python deployment_script.py --force
+
+# 3. Test with a simple query
+ollama run text-to-sql "CREATE TABLE test (id INT); Find all records from test table"
+```
+
+**Root cause:** Improper stop token configuration in Modelfile causing infinite generation loops.
+**Solution:** The fix script automatically recreates the model with proper token handling.
+
+#### 8. Model Response Quality Issues
+```bash
+# If the model generates poor or nonsensical SQL:
+
+# Use the specialized SQL model (if you have resources)
+python text_to_sql_train.py --base-model "defog/sqlcoder-7b"
+
+# Increase training quality
+python text_to_sql_train.py --max-samples 10000 --lora-r 32
+
+# Use better prompting format
+# Include more context in your schema descriptions
+```
+
 ### Performance Optimization
 
 #### NEW: Memory Optimization (Enabled by Default)
@@ -538,3 +577,37 @@ For commercial support, training, or custom implementations, please contact [you
 ---
 
 **Made with ❤️ for the open source community**
+
+## 🌐 Web Interface (NEW!)
+
+### Quick Start Web App
+```bash
+# Start the web application (auto-installs Flask if needed)
+python start_webapp.py
+
+# Or run directly
+pip install flask>=2.3.0
+python app.py
+```
+
+**Features:**
+- **Beautiful Web Interface**: Modern, responsive design
+- **Real-time Status**: Live Ollama service and model status
+- **Interactive Examples**: Pre-built schemas and queries
+- **SQL Validation**: Automatic syntax checking
+- **Copy to Clipboard**: Easy result sharing
+- **Error Handling**: User-friendly error messages
+
+**Access:** Open http://localhost:5000 in your browser
+
+### Web App Screenshots
+- 🏠 **Main Interface**: Schema input, query input, and SQL generation
+- 📚 **Examples Page**: Pre-built examples for different domains
+- ✅ **Real-time Validation**: Instant SQL syntax checking
+- 📱 **Mobile Friendly**: Responsive design for all devices
+
+**📚 Detailed Documentation:**
+- [Web Application Guide](WEBAPP.md) - Complete web interface documentation
+- [Deployment Guide](DEPLOYMENT.md) - Step-by-step deployment instructions
+- [Token Fix Guide](OLLAMA_TOKEN_FIX.md) - Troubleshooting token generation issues
+- [Assessment Questions](ASSESSMENT.md) - Comprehensive assessment and examples

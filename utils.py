@@ -9,6 +9,7 @@ import yaml
 import logging
 import subprocess
 import sqlite3
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 import pandas as pd
@@ -332,17 +333,69 @@ class OllamaManager:
             logging.error(f"Error querying model: {e}")
             return None
     
-    def delete_model(self) -> bool:
-        """Delete the Ollama model"""
-        try:
-            result = subprocess.run(
-                ["ollama", "rm", self.model_name],
-                capture_output=True,
-                text=True
-            )
-            return result.returncode == 0
-        except subprocess.SubprocessError:
-            return False
+    def query_model_safe(self, prompt: str, timeout: int = 60, max_retries: int = 3) -> Optional[str]:
+        """Query the Ollama model with better error handling and token management"""
+        for attempt in range(max_retries):
+            try:
+                # Use a more structured prompt format
+                formatted_prompt = f"""Database Schema:
+{prompt.split('Request:')[0].strip()}
+
+Query Request: {prompt.split('Request:')[1].strip() if 'Request:' in prompt else prompt}
+
+Generate a SQL query for the above request. Respond with only the SQL code in a code block followed by a brief explanation."""
+                
+                result = subprocess.run(
+                    ["ollama", "run", self.model_name],
+                    input=formatted_prompt,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout
+                )
+                
+                if result.returncode == 0:
+                    response = result.stdout.strip()
+                    
+                    # Check for token loop issue
+                    if "{ end }<|end|>" in response or response.count("<|end|>") > 5:
+                        logging.warning(f"Detected token loop in response, retrying... (attempt {attempt + 1})")
+                        if attempt < max_retries - 1:
+                            time.sleep(1)  # Brief pause before retry
+                            continue
+                        else:
+                            logging.error("Model stuck in token loop, trying fallback")
+                            return self._fallback_query(prompt)
+                    
+                    return response
+                else:
+                    logging.error(f"Query failed: {result.stderr}")
+                    if attempt < max_retries - 1:
+                        time.sleep(1)
+                        continue
+                    return None
+                    
+            except subprocess.TimeoutExpired:
+                logging.error(f"Query timed out (attempt {attempt + 1})")
+                if attempt < max_retries - 1:
+                    continue
+                return None
+            except subprocess.SubprocessError as e:
+                logging.error(f"Error querying model: {e}")
+                if attempt < max_retries - 1:
+                    continue
+                return None
+        
+        return None
+    
+    def _fallback_query(self, prompt: str) -> str:
+        """Fallback query method when model gets stuck"""
+        # Simple fallback response
+        if "SELECT" in prompt.upper() or "find" in prompt.lower() or "get" in prompt.lower():
+            return """```sql
+SELECT * FROM table_name WHERE condition;
+```
+Note: The model encountered an issue. Please provide a more specific schema and query for better results."""
+        return "Error: Unable to generate SQL query. Please check your input and try again."
 
 class DatasetAnalyzer:
     """Analyze the text-to-SQL dataset"""

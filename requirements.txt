@@ -39,3 +39,7 @@ psutil>=5.9.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
 plotly>=5.17.0
+
+# Web framework and HTTP client
+flask>=2.3.0
+requests>=2.31.0

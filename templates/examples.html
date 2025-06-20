@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examples - Text-to-SQL Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2D3748 0%, #4A5568 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .nav {
+            background: #f7fafc;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        
+        .content {
+            padding: 2rem;
+        }
+        
+        .example-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .example-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        
+        .example-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            margin-bottom: 1rem;
+        }
+        
+        .query-text {
+            background: #e0f2fe;
+            color: #0277bd;
+            padding: 1rem;
+            border-radius: 8px;
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+        
+        .use-example-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .use-example-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+        
+        .complexity-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-left: 1rem;
+        }
+        
+        .complexity-basic {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .complexity-intermediate {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .complexity-advanced {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Text-to-SQL Examples</h1>
+            <p>Sample schemas and queries to get you started</p>
+        </div>
+        
+        <div class="nav">
+            <a href="/">← Back to Generator</a>
+        </div>
+        
+        <div class="content">
+            <!-- Basic Example -->
+            <div class="example-card">
+                <h3 class="example-title">
+                    Basic User Query
+                    <span class="complexity-badge complexity-basic">Basic</span>
+                </h3>
+                
+                <div class="example-section">
+                    <div class="section-label">Database Schema:</div>
+                    <div class="code-block">CREATE TABLE users (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    created_at TIMESTAMP,
+    status VARCHAR(20)
+);</div>
+                </div>
+                
+                <div class="example-section">
+                    <div class="section-label">Natural Language Query:</div>
+                    <div class="query-text">Find all active users who registered in the last 30 days</div>
+                </div>
+                
+                <button class="use-example-btn" onclick="useExample(0)">Use This Example</button>
+            </div>
+            
+            <!-- Intermediate Example -->
+            <div class="example-card">
+                <h3 class="example-title">
+                    E-commerce Analysis
+                    <span class="complexity-badge complexity-intermediate">Intermediate</span>
+                </h3>
+                
+                <div class="example-section">
+                    <div class="section-label">Database Schema:</div>
+                    <div class="code-block">CREATE TABLE customers (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    city VARCHAR(50)
+);
+
+CREATE TABLE orders (
+    id INT PRIMARY KEY,
+    customer_id INT,
+    product_name VARCHAR(100),
+    amount DECIMAL(10,2),
+    order_date DATE,
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+);</div>
+                </div>
+                
+                <div class="example-section">
+                    <div class="section-label">Natural Language Query:</div>
+                    <div class="query-text">Show the top 5 customers by total order value, including their email and city</div>
+                </div>
+                
+                <button class="use-example-btn" onclick="useExample(1)">Use This Example</button>
+            </div>
+            
+            <!-- Advanced Example -->
+            <div class="example-card">
+                <h3 class="example-title">
+                    Sales Analytics with Date Functions
+                    <span class="complexity-badge complexity-advanced">Advanced</span>
+                </h3>
+                
+                <div class="example-section">
+                    <div class="section-label">Database Schema:</div>
+                    <div class="code-block">CREATE TABLE employees (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    department VARCHAR(50),
+    hire_date DATE,
+    salary DECIMAL(10,2)
+);
+
+CREATE TABLE sales (
+    id INT PRIMARY KEY,
+    employee_id INT,
+    sale_amount DECIMAL(10,2),
+    sale_date DATE,
+    region VARCHAR(50),
+    FOREIGN KEY (employee_id) REFERENCES employees(id)
+);</div>
+                </div>
+                
+                <div class="example-section">
+                    <div class="section-label">Natural Language Query:</div>
+                    <div class="query-text">Calculate monthly sales totals for each region in 2024, showing percentage growth compared to the previous month</div>
+                </div>
+                
+                <button class="use-example-btn" onclick="useExample(2)">Use This Example</button>
+            </div>
+            
+            <!-- Healthcare Example -->
+            <div class="example-card">
+                <h3 class="example-title">
+                    Healthcare Database
+                    <span class="complexity-badge complexity-intermediate">Intermediate</span>
+                </h3>
+                
+                <div class="example-section">
+                    <div class="section-label">Database Schema:</div>
+                    <div class="code-block">CREATE TABLE patients (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    date_of_birth DATE,
+    gender VARCHAR(10),
+    phone VARCHAR(20)
+);
+
+CREATE TABLE appointments (
+    id INT PRIMARY KEY,
+    patient_id INT,
+    doctor_name VARCHAR(100),
+    appointment_date DATETIME,
+    status VARCHAR(20),
+    notes TEXT,
+    FOREIGN KEY (patient_id) REFERENCES patients(id)
+);</div>
+                </div>
+                
+                <div class="example-section">
+                    <div class="section-label">Natural Language Query:</div>
+                    <div class="query-text">Find all patients who have upcoming appointments this week and are over 65 years old</div>
+                </div>
+                
+                <button class="use-example-btn" onclick="useExample(3)">Use This Example</button>
+            </div>
+            
+            <!-- Inventory Example -->
+            <div class="example-card">
+                <h3 class="example-title">
+                    Inventory Management
+                    <span class="complexity-badge complexity-basic">Basic</span>
+                </h3>
+                
+                <div class="example-section">
+                    <div class="section-label">Database Schema:</div>
+                    <div class="code-block">CREATE TABLE products (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    category VARCHAR(50),
+    price DECIMAL(10,2),
+    stock_quantity INT,
+    supplier_id INT
+);
+
+CREATE TABLE suppliers (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    contact_email VARCHAR(100),
+    city VARCHAR(50)
+);</div>
+                </div>
+                
+                <div class="example-section">
+                    <div class="section-label">Natural Language Query:</div>
+                    <div class="query-text">List all products that are low in stock (less than 10 items) along with their supplier contact information</div>
+                </div>
+                
+                <button class="use-example-btn" onclick="useExample(4)">Use This Example</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const examples = [
+            {
+                schema: `CREATE TABLE users (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    created_at TIMESTAMP,
+    status VARCHAR(20)
+);`,
+                query: "Find all active users who registered in the last 30 days"
+            },
+            {
+                schema: `CREATE TABLE customers (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    city VARCHAR(50)
+);
+
+CREATE TABLE orders (
+    id INT PRIMARY KEY,
+    customer_id INT,
+    product_name VARCHAR(100),
+    amount DECIMAL(10,2),
+    order_date DATE,
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+);`,
+                query: "Show the top 5 customers by total order value, including their email and city"
+            },
+            {
+                schema: `CREATE TABLE employees (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    department VARCHAR(50),
+    hire_date DATE,
+    salary DECIMAL(10,2)
+);
+
+CREATE TABLE sales (
+    id INT PRIMARY KEY,
+    employee_id INT,
+    sale_amount DECIMAL(10,2),
+    sale_date DATE,
+    region VARCHAR(50),
+    FOREIGN KEY (employee_id) REFERENCES employees(id)
+);`,
+                query: "Calculate monthly sales totals for each region in 2024, showing percentage growth compared to the previous month"
+            },
+            {
+                schema: `CREATE TABLE patients (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    date_of_birth DATE,
+    gender VARCHAR(10),
+    phone VARCHAR(20)
+);
+
+CREATE TABLE appointments (
+    id INT PRIMARY KEY,
+    patient_id INT,
+    doctor_name VARCHAR(100),
+    appointment_date DATETIME,
+    status VARCHAR(20),
+    notes TEXT,
+    FOREIGN KEY (patient_id) REFERENCES patients(id)
+);`,
+                query: "Find all patients who have upcoming appointments this week and are over 65 years old"
+            },
+            {
+                schema: `CREATE TABLE products (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    category VARCHAR(50),
+    price DECIMAL(10,2),
+    stock_quantity INT,
+    supplier_id INT
+);
+
+CREATE TABLE suppliers (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    contact_email VARCHAR(100),
+    city VARCHAR(50)
+);`,
+                query: "List all products that are low in stock (less than 10 items) along with their supplier contact information"
+            }
+        ];
+        
+        function useExample(index) {
+            const example = examples[index];
+            localStorage.setItem('selectedExample', JSON.stringify(example));
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

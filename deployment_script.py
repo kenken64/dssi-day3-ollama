@@ -52,45 +52,39 @@ PARAMETER temperature {self.config.get('ollama.temperature', 0.1)}
 PARAMETER top_p {self.config.get('ollama.top_p', 0.9)}
 PARAMETER top_k {self.config.get('ollama.top_k', 40)}
 PARAMETER repeat_penalty {self.config.get('ollama.repeat_penalty', 1.1)}
+PARAMETER num_predict 512
 PARAMETER stop "<|endoftext|>"
 PARAMETER stop "</s>"
+PARAMETER stop "<|end|>"
+PARAMETER stop "{{ end }}"
+PARAMETER stop "END"
 PARAMETER stop "Human:"
 PARAMETER stop "Assistant:"
 
 # System prompt optimized for SQL generation
-SYSTEM \"\"\"You are an expert SQL query generator with deep knowledge of database systems and query optimization. 
-
-Your task is to convert natural language requests into accurate, efficient SQL queries based on the provided database schema.
+SYSTEM \"\"\"You are an expert SQL query generator. Convert natural language requests into accurate SQL queries based on the provided database schema.
 
 Guidelines:
-1. Analyze the database schema carefully before generating queries
-2. Use proper SQL syntax and formatting
-3. Include appropriate table aliases for complex joins
-4. Consider query performance and best practices
-5. Handle edge cases and potential data issues
-6. Provide clear explanations for complex queries
+1. Analyze the database schema carefully
+2. Generate syntactically correct SQL
+3. Use proper formatting and table aliases
+4. Be concise and accurate
 
-Response format:
+Response format: Return only the SQL query in a code block, followed by a brief explanation.
+
+Example:
 ```sql
-[YOUR SQL QUERY HERE]
+SELECT * FROM users WHERE created_at > DATE_SUB(NOW(), INTERVAL 30 DAY);
 ```
+This query finds all users created in the last 30 days.\"\"\"
 
-Explanation: [Brief explanation of the query logic, including any important considerations about performance, data handling, or business logic]
+# Simple template to avoid token confusion
+TEMPLATE \"\"\"{{ .System }}
 
-Important: Always ensure your SQL is syntactically correct and follows the schema constraints provided.
-\"\"\"
-
-# Template for structured conversations
-TEMPLATE \"\"\"{{ if .System }}<|system|>
-{{ .System }}<|end|>
-{{ end }}{{ if .Prompt }}<|user|>
 Database Schema:
 {{ .Prompt }}
 
-Please generate the SQL query for the request above.<|end|>
-{{ end }}<|assistant|>
-{{ .Response }}<|end|>
-\"\"\"
+Please generate the SQL query:\"\"\"
 """
         
         with open(modelfile_path, 'w') as f:
@@ -175,9 +169,9 @@ CREATE TABLE orders (id INT, customer_id INT, total DECIMAL(10,2), order_date DA
         for test_case in test_cases:
             try:
                 prompt = f"{test_case['schema']}\n\nRequest: {test_case['request']}"
-                response = self.ollama_manager.query_model(prompt, timeout=30)
+                response = self.ollama_manager.query_model_safe(prompt, timeout=30)
                 
-                if response:
+                if response and "{ end }<|end|>" not in response:
                     # Extract SQL from response
                     sql_query = SQLValidator.extract_sql_from_text(response)
                     
@@ -272,9 +266,9 @@ CREATE TABLE orders (id INT, customer_id INT, total DECIMAL(10,2), order_date DA
                 
                 print("\n🔄 Generating SQL...")
                 prompt = f"{schema}\n\nRequest: {query}"
-                response = self.ollama_manager.query_model(prompt, timeout=30)
+                response = self.ollama_manager.query_model_safe(prompt, timeout=30)
                 
-                if response:
+                if response and "{ end }<|end|>" not in response:
                     print("\n✅ Generated Response:")
                     print("-" * 40)
                     print(response)

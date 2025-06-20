@@ -82,16 +82,27 @@ ValueError: Target modules {'k_proj', 'q_proj', 'up_proj'} not found in the base
 2. **Describe** how the system automatically resolves this issue
 3. **List** alternative target modules that might work for different model architectures
 
-### Question 6: Deployment Issues (10 points)
-During Ollama deployment, you see:
+### Question 6: Deployment Issues (15 points)
+During Ollama deployment, you encounter these issues:
 
+**Issue 1:** 
 ```
 Error: pull model manifest: file does not exist
 ```
 
-1. **Identify** the root cause of this error
-2. **Explain** the model name mapping process
-3. **Provide** the specific solution implemented in the codebase
+**Issue 2:**
+When testing the model, you get repeating output:
+```
+{ end }<|end|>
+{ end }<|end|>
+{ end }<|end|>
+...
+```
+
+1. **Identify** the root cause of each error
+2. **Explain** the model name mapping process for Issue 1
+3. **Describe** what causes the token generation loop in Issue 2
+4. **Provide** the specific solutions implemented in the codebase for both issues
 
 ---
 
