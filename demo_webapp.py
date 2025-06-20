@@ -7,9 +7,31 @@ Shows how to interact with the Flask web application programmatically
 import requests
 import json
 import time
+import argparse
+import sys
+
+def parse_arguments():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description='Demo the Text-to-SQL Web API')
+    parser.add_argument(
+        '--port', '-p',
+        type=int,
+        default=5000,
+        help='Port the web application is running on (default: 5000)'
+    )
+    parser.add_argument(
+        '--host',
+        type=str,
+        default='localhost',
+        help='Host the web application is running on (default: localhost)'
+    )
+    return parser.parse_args()
+
+# Parse arguments
+args = parse_arguments()
 
 # Configuration
-BASE_URL = "http://localhost:5000"
+BASE_URL = f"http://{args.host}:{args.port}"
 API_URL = f"{BASE_URL}/api"
 
 def check_web_app_status():

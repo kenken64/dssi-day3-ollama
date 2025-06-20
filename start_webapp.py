@@ -7,6 +7,7 @@ import subprocess
 import sys
 import os
 import time
+import argparse
 from pathlib import Path
 
 def check_requirements():
@@ -45,6 +46,33 @@ def install_requirements():
         return False
 
 def main():
+    parser = argparse.ArgumentParser(description='Start the Text-to-SQL Web Application')
+    parser.add_argument(
+        '--port', '-p',
+        type=int,
+        default=5000,
+        help='Port to run the web application on (default: 5000)'
+    )
+    parser.add_argument(
+        '--host',
+        type=str,
+        default='0.0.0.0',
+        help='Host to bind the web application to (default: 0.0.0.0)'
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode'
+    )
+    parser.add_argument(
+        '--model-name',
+        type=str,
+        default='text-to-sql',
+        help='Name of the Ollama model to use (default: text-to-sql)'
+    )
+    
+    args = parser.parse_args()
+    
     print("🚀 Text-to-SQL Web App Startup")
     print("=" * 40)
     
@@ -79,17 +107,29 @@ def main():
     
     # Start the web application
     print("\n🌐 Starting web application...")
-    print("📍 Access the app at: http://localhost:5000")
+    print(f"📍 Access the app at: http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}")
     print("🛑 Press Ctrl+C to stop the server")
+    print(f"🤖 Using model: {args.model_name}")
     print("-" * 40)
     
     try:
         # Set Flask environment variables
         os.environ['FLASK_APP'] = 'app.py'
-        os.environ['FLASK_ENV'] = 'development'
+        os.environ['FLASK_ENV'] = 'development' if args.debug else 'production'
+        
+        # Build command with arguments
+        cmd = [
+            sys.executable, 'app.py',
+            '--port', str(args.port),
+            '--host', args.host,
+            '--model-name', args.model_name
+        ]
+        
+        if args.debug:
+            cmd.append('--debug')
         
         # Start Flask app
-        subprocess.run([sys.executable, 'app.py'])
+        subprocess.run(cmd)
     except KeyboardInterrupt:
         print("\n👋 Shutting down web application...")
     except Exception as e:

@@ -7,7 +7,19 @@ A comprehensive pipeline for training and deploying text-to-SQL models using the
 - **Complete Training Pipeline**: Fine-tune models on the Gretel AI synthetic text-to-SQL dataset
 - **Multiple Base Models**: Support for CodeLlama, SQLCoder, and other popular models
 - **Efficient Training**: Uses LoRA (Low-Rank Adaptation) for memory-efficient fine-tuning
-- **Intelligent Model Adaptation**: Auto-detects LoRA target modules for any model architecture
+- **Intelligent Model Adaptation**: Auto-detects LoRA t### Quick Start Web App
+```bash
+# Start the web application (auto-installs Flask if needed)
+python start_webapp.py
+
+# Or with custom port and options
+python start_webapp.py --port 8080 --debug
+python start_webapp.py --host 127.0.0.1 --port 3000 --model-name my-sql-model
+
+# Or run directly
+pip install flask>=2.3.0 requests>=2.31.0
+python app.py --port 5000
+```ules for any model architecture
 - **Ollama Integration**: Deploy models locally with Ollama for fast inference
 - **Memory Optimized**: Smart adapter-only saving reduces file sizes by 100x (50MB vs 13GB)
 - **Comprehensive Testing**: Built-in test suite with performance benchmarks
@@ -598,7 +610,7 @@ python app.py
 - **Copy to Clipboard**: Easy result sharing
 - **Error Handling**: User-friendly error messages
 
-**Access:** Open http://localhost:5000 in your browser
+**Access:** Open http://localhost:PORT in your browser (default PORT is 5000)
 
 ### Web App Screenshots
 - 🏠 **Main Interface**: Schema input, query input, and SQL generation

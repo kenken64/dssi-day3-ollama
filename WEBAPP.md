@@ -16,16 +16,36 @@ A modern, user-friendly web interface for the Text-to-SQL model powered by Flask
 
 ### 1. Start the Web Application
 ```bash
-# Easy startup (auto-installs dependencies)
+# Easy startup (auto-installs dependencies) - default port 5000
 python start_webapp.py
 
-# Or manual setup
+# With custom port
+python start_webapp.py --port 8080
+
+# With custom host and port
+python start_webapp.py --host 127.0.0.1 --port 3000
+
+# With debug mode and custom model
+python start_webapp.py --port 8080 --debug --model-name my-sql-model
+
+# Or run directly with custom options
 pip install flask>=2.3.0 requests>=2.31.0
-python app.py
+python app.py --port 8080 --host 0.0.0.0 --debug
 ```
 
+**Available Options:**
+- `--port, -p`: Port number (default: 5000)
+- `--host`: Host address (default: 0.0.0.0)
+- `--debug`: Enable debug mode
+- `--model-name`: Ollama model name (default: text-to-sql)
+
 ### 2. Access the Interface
-Open your browser and navigate to: **http://localhost:5000**
+Open your browser and navigate to: **http://localhost:PORT** (where PORT is your chosen port, default 5000)
+
+Examples:
+- Default: http://localhost:5000
+- Custom port: http://localhost:8080
+- Custom host: http://127.0.0.1:3000
 
 ### 3. Use the Application
 1. **Enter Database Schema**: Paste your CREATE TABLE statements
@@ -52,12 +72,25 @@ Open your browser and navigate to: **http://localhost:5000**
 
 ### Status Check
 ```bash
+# Default port
 curl http://localhost:5000/api/status
+
+# Custom port
+curl http://localhost:8080/api/status
 ```
 
 ### Generate SQL
 ```bash
+# Default port
 curl -X POST http://localhost:5000/api/generate-sql \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema": "CREATE TABLE users (id INT, name VARCHAR(50));",
+    "query": "Find all users"
+  }'
+
+# Custom port
+curl -X POST http://localhost:8080/api/generate-sql \
   -H "Content-Type: application/json" \
   -d '{
     "schema": "CREATE TABLE users (id INT, name VARCHAR(50));",
@@ -67,7 +100,13 @@ curl -X POST http://localhost:5000/api/generate-sql \
 
 ### Validate SQL
 ```bash
+# Default port
 curl -X POST http://localhost:5000/api/validate-sql \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT * FROM users;"}'
+
+# Custom port  
+curl -X POST http://localhost:8080/api/validate-sql \
   -H "Content-Type: application/json" \
   -d '{"sql": "SELECT * FROM users;"}'
 ```
@@ -113,12 +152,18 @@ volumes:
 
 ### Automated Demo
 ```bash
-# Run API demo (requires web app to be running)
+# Run API demo with default port (requires web app to be running)
 python demo_webapp.py
+
+# Run API demo with custom port
+python demo_webapp.py --port 8080
+
+# Run API demo with custom host and port
+python demo_webapp.py --host 127.0.0.1 --port 3000
 ```
 
 ### Manual Testing
-1. Visit http://localhost:5000
+1. Visit http://localhost:PORT (replace PORT with your chosen port)
 2. Try the example schemas and queries
 3. Check status indicators
 4. Verify SQL generation and validation
@@ -128,6 +173,9 @@ python demo_webapp.py
 ### Environment Variables
 - `FLASK_ENV`: Set to `production` for production deployment
 - `FLASK_DEBUG`: Set to `False` for production
+- `FLASK_PORT`: Default port number (can be overridden by --port)
+- `FLASK_HOST`: Default host address (can be overridden by --host)
+- `OLLAMA_MODEL_NAME`: Default model name (can be overridden by --model-name)
 - `SECRET_KEY`: Change the secret key for production use
 
 ### Customization

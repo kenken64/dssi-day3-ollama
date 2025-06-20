@@ -9,6 +9,8 @@ import subprocess
 import json
 import logging
 import os
+import argparse
+import sys
 from datetime import datetime
 from utils import OllamaManager, SQLValidator
 
@@ -189,7 +191,47 @@ def not_found(error):
 def internal_error(error):
     return render_template('500.html'), 500
 
+def parse_arguments():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description='Text-to-SQL Web Application')
+    parser.add_argument(
+        '--port', '-p',
+        type=int,
+        default=int(os.environ.get('FLASK_PORT', 5000)),
+        help='Port to run the web application on (default: 5000, can also set FLASK_PORT env var)'
+    )
+    parser.add_argument(
+        '--host',
+        type=str,
+        default=os.environ.get('FLASK_HOST', '0.0.0.0'),
+        help='Host to bind the web application to (default: 0.0.0.0, can also set FLASK_HOST env var)'
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        default=os.environ.get('FLASK_DEBUG', 'False').lower() == 'true',
+        help='Enable debug mode (default: False, can also set FLASK_DEBUG env var)'
+    )
+    parser.add_argument(
+        '--model-name',
+        type=str,
+        default=os.environ.get('OLLAMA_MODEL_NAME', 'text-to-sql'),
+        help='Name of the Ollama model to use (default: text-to-sql, can also set OLLAMA_MODEL_NAME env var)'
+    )
+    return parser.parse_args()
+
 if __name__ == '__main__':
+    # Parse command line arguments
+    args = parse_arguments()
+    
+    # Update Ollama manager with specified model name
+    try:
+        ollama_manager = OllamaManager(args.model_name)
+        logger.info(f"Using Ollama model: {args.model_name}")
+    except Exception as e:
+        logger.error(f"Failed to initialize Ollama manager with model '{args.model_name}': {e}")
+        ollama_manager = None
+    
     # Check if templates directory exists
     if not os.path.exists('templates'):
         os.makedirs('templates')
@@ -199,5 +241,16 @@ if __name__ == '__main__':
         os.makedirs('static')
         logger.info("Created static directory")
     
-    # Development server
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Print startup information
+    print("🚀 Text-to-SQL Web Application")
+    print("=" * 40)
+    print(f"🌐 Host: {args.host}")
+    print(f"🔌 Port: {args.port}")
+    print(f"🤖 Model: {args.model_name}")
+    print(f"🐛 Debug: {args.debug}")
+    print(f"📍 URL: http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}")
+    print("🛑 Press Ctrl+C to stop")
+    print("-" * 40)
+    
+    # Run the application
+    app.run(debug=args.debug, host=args.host, port=args.port)
