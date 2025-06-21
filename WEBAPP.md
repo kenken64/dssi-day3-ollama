@@ -462,3 +462,166 @@ python text_to_sql_train.py --mode full --device cuda --max-samples 20000
 # Production web app
 python start_webapp.py --port 80 --host 0.0.0.0 --model-name text-to-sql
 ```
+
+## 🎯 Production Deployment Guide
+
+### Development vs Production Setup
+
+#### Development (CodeBERT-base) 🚀
+```bash
+# Quick development setup (15-25 minutes total)
+python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode full --model-name codebert-sql
+python start_webapp.py --model-name codebert-sql --debug --port 5000
+```
+
+**Development Pros:**
+- ⚡ Fast training (15-25 minutes)
+- 💾 Low memory usage (~2GB)
+- 🔄 Quick iterations
+- 🍎 Mac-optimized
+- 🧪 Perfect for testing and prototyping
+
+**Development Cons:**
+- 📉 Lower SQL quality for complex queries
+- 🚫 Not suitable for production workloads
+- 🔗 Limited multi-table JOIN performance
+
+#### Production (CodeLlama-7B) 💪
+```bash
+# Production setup (2-3 hours total)
+python text_to_sql_train.py --mode full --max-samples 10000
+python start_webapp.py --port 80 --host 0.0.0.0
+```
+
+**Production Pros:**
+- 🎯 High SQL quality
+- 💪 Handles complex queries
+- 📈 Production-ready performance
+- 🔗 Excellent multi-table support
+
+**Production Cons:**
+- 🐌 Longer training (2-3 hours)
+- 💾 Higher memory requirements (8-16GB)
+- 💰 Higher computational costs
+
+### Model Selection Decision Tree
+```
+Start Here
+    ↓
+Is this for development/testing?
+    ↓ YES
+Use CodeBERT-base (--fast-mac)
+    ↓ NO
+Do you need complex SQL support?
+    ↓ YES
+Use CodeLlama-7B (production)
+    ↓ NO
+Use CodeT5+ 770M (balanced)
+```
+
+### Security Considerations
+1. **Change Flask Secret Key**:
+   ```bash
+   export FLASK_SECRET_KEY="your-secure-random-key-here"
+   ```
+
+2. **Set Production Environment**:
+   ```bash
+   export FLASK_ENV=production
+   export FLASK_DEBUG=0
+   ```
+
+3. **Use Reverse Proxy (nginx)**:
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+       
+       location / {
+           proxy_pass http://127.0.0.1:5000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+   }
+   ```
+
+4. **Enable HTTPS**: Use Let's Encrypt or SSL certificates
+5. **Implement Rate Limiting**: Prevent API abuse
+6. **Add Authentication**: Protect sensitive endpoints
+
+### Performance Optimization
+
+#### CodeBERT Development
+```bash
+# Lightweight development server
+python start_webapp.py --model-name codebert-sql --debug
+```
+- Use in-memory caching for repeated queries
+- Single-threaded sufficient for testing
+- Enable debug mode for development
+
+#### CodeLlama Production
+```bash
+# Production WSGI server
+pip install gunicorn
+gunicorn --workers 4 --bind 0.0.0.0:5000 app:app
+```
+- Use multiple workers for concurrency
+- Enable caching for static assets
+- Monitor resource usage
+- Scale horizontally if needed
+
+### Monitoring & Maintenance
+
+#### Health Checks
+```bash
+# Check web app health
+curl http://localhost:5000/api/status
+
+# Check model performance
+curl -X POST http://localhost:5000/api/generate-sql \
+  -H "Content-Type: application/json" \
+  -d '{"schema": "CREATE TABLE test (id INT);", "query": "Select all"}'
+```
+
+#### Log Monitoring
+```bash
+# Monitor application logs
+tail -f app.log
+
+# Monitor training logs
+tail -f text_to_sql_training.log
+```
+
+#### Resource Monitoring
+```bash
+# Monitor memory usage
+htop
+
+# Monitor disk space
+df -h
+
+# Monitor Ollama service
+ollama ps
+```
+
+### Deployment Checklist
+
+#### Pre-deployment
+- [ ] Model trained and tested
+- [ ] Ollama service running
+- [ ] Model deployed to Ollama
+- [ ] Web app dependencies installed
+- [ ] Security configurations applied
+- [ ] SSL certificates configured
+- [ ] Monitoring setup complete
+
+#### Post-deployment
+- [ ] Health checks passing
+- [ ] Performance tests completed
+- [ ] Logs properly configured
+- [ ] Backup procedures in place
+- [ ] Scaling strategy defined
+- [ ] Error handling verified
+
+The web application provides an intuitive interface for anyone to use the text-to-SQL model without command-line knowledge, with flexible deployment options for both development and production environments!
