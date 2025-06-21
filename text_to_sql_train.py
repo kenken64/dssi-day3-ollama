@@ -545,14 +545,14 @@ class ModelTrainer:
             device_type = "mps"
             logger.info("Detected Apple Silicon Mac with MPS backend")
             # Automatically apply Mac optimizations for better MPS performance
-            self.apply_mac_optimizations()
+            self.config.apply_mac_optimizations()
         elif torch.cuda.is_available():
             device_type = "cuda"
             gpu_name = torch.cuda.get_device_name()
             gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
             logger.info(f"Detected NVIDIA GPU: {gpu_name} ({gpu_memory:.1f}GB)")
             # Automatically apply NVIDIA optimizations for maximum performance
-            self.apply_nvidia_optimizations()
+            self.config.apply_nvidia_optimizations()
         else:
             device_type = "cpu"
             import psutil
@@ -560,7 +560,7 @@ class ModelTrainer:
             memory_gb = psutil.virtual_memory().total / 1e9
             logger.info(f"Using CPU for training: {cpu_count} cores, {memory_gb:.1f}GB RAM")
             # Automatically apply CPU optimizations for efficiency
-            self.apply_cpu_optimizations()
+            self.config.apply_cpu_optimizations()
         
         # Determine optimal precision settings based on device capabilities
         use_fp16 = False  # 16-bit floating point for speed
@@ -1292,11 +1292,11 @@ def main():
                 # Use user-specified device and apply appropriate optimizations
                 device_type = forced_device
                 if device_type == "cpu":
-                    trainer.apply_cpu_optimizations()
+                    config.apply_cpu_optimizations()
                 elif device_type == "mps":
-                    trainer.apply_mac_optimizations()
+                    config.apply_mac_optimizations()
                 elif device_type == "cuda":
-                    trainer.apply_nvidia_optimizations()
+                    config.apply_nvidia_optimizations()
                 use_fp16, use_bf16 = False, False  # Will be determined by device type
                 if device_type == "cuda":
                     use_fp16 = True

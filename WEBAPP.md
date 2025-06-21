@@ -1,6 +1,6 @@
 # Text-to-SQL Web Application
 
-A modern, user-friendly web interface for the Text-to-SQL model powered by Flask and Ollama.
+A modern, user-friendly web interface for the Text-to-SQL model powered by Flask and Ollama, supporting multiple base models including CodeBERT-base for fast prototyping.
 
 ## 🌟 Features
 
@@ -11,6 +11,8 @@ A modern, user-friendly web interface for the Text-to-SQL model powered by Flask
 - **Copy to Clipboard**: Easy result sharing and copying
 - **Mobile Friendly**: Works perfectly on desktop, tablet, and mobile devices
 - **Error Handling**: User-friendly error messages and troubleshooting
+- **Multiple Model Support**: Works with CodeLlama, CodeBERT-base, and other models
+- **Fast Training Integration**: Direct integration with --fast-mac training pipeline
 
 ## 🚀 Quick Start
 
@@ -72,29 +74,46 @@ Examples:
 
 ### Status Check
 ```bash
-# Default port
+# Check CodeBERT model status
 curl http://localhost:5000/api/status
 
-# Custom port
-curl http://localhost:8080/api/status
+# Response for CodeBERT setup
+{
+  "ollama_running": true,
+  "model_available": true,
+  "model_name": "codebert-sql",
+  "model_type": "CodeBERT-base",
+  "training_config": "fast-mac",
+  "status": "ready"
+}
 ```
 
-### Generate SQL
+### Generate SQL with CodeBERT
 ```bash
-# Default port
+# CodeBERT model (fast response ~0.5-1s)
 curl -X POST http://localhost:5000/api/generate-sql \
   -H "Content-Type: application/json" \
   -d '{
-    "schema": "CREATE TABLE users (id INT, name VARCHAR(50));",
-    "query": "Find all users"
+    "schema": "CREATE TABLE users (id INT, name VARCHAR(50), age INT);",
+    "query": "Find all users over 25"
   }'
 
-# Custom port
+# Expected CodeBERT response
+{
+  "sql": "SELECT * FROM users WHERE age > 25;",
+  "status": "success",
+  "model": "codebert-sql",
+  "model_type": "CodeBERT-base",
+  "response_time": 0.8,
+  "training_mode": "fast-mac"
+}
+
+# Production model (higher quality ~1-2s)
 curl -X POST http://localhost:8080/api/generate-sql \
   -H "Content-Type: application/json" \
   -d '{
-    "schema": "CREATE TABLE users (id INT, name VARCHAR(50));",
-    "query": "Find all users"
+    "schema": "CREATE TABLE products (id INT, name VARCHAR(100), price DECIMAL(10,2));",
+    "query": "Show products under $50 ordered by price"
   }'
 ```
 
@@ -168,6 +187,65 @@ python demo_webapp.py --host 127.0.0.1 --port 3000
 3. Check status indicators
 4. Verify SQL generation and validation
 
+## ⚙️ Configuration & Environment Variables
+
+### CodeBERT Development Setup
+```bash
+# Environment variables for CodeBERT development
+export OLLAMA_MODEL_NAME="codebert-sql"
+export TRAINING_CONFIG="fast-mac"
+export MODEL_TYPE="CodeBERT-base"
+export FLASK_ENV="development"
+export FLASK_DEBUG=1
+
+# Start web app with CodeBERT configuration
+python start_webapp.py --model-name codebert-sql --debug
+```
+
+### Production Environment Variables
+```bash
+# Production configuration
+export OLLAMA_MODEL_NAME="text-to-sql"
+export MODEL_TYPE="CodeLlama-7B"
+export TRAINING_CONFIG="production"
+export FLASK_ENV="production"
+export FLASK_SECRET_KEY="your-secret-key-here"
+
+# Start production web app
+python start_webapp.py --port 80 --host 0.0.0.0
+```
+
+### Docker Environment (CodeBERT)
+```yaml
+# docker-compose.yml for CodeBERT development
+version: '3.8'
+services:
+  webapp-codebert:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapp
+    ports:
+      - "5000:5000"
+    environment:
+      - OLLAMA_HOST=ollama:11434
+      - OLLAMA_MODEL_NAME=codebert-sql
+      - MODEL_TYPE=CodeBERT-base
+      - TRAINING_CONFIG=fast-mac
+      - FLASK_ENV=development
+    depends_on:
+      - ollama
+  
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  ollama_data:
+```
+
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -225,9 +303,46 @@ python fix_ollama_tokens.py
 python deployment_script.py --force
 ```
 
+### CodeBERT-Specific Issues
+
+#### CodeBERT Model Not Found
+```bash
+# Check if CodeBERT model was deployed correctly
+ollama list | grep codebert
+
+# If missing, train and deploy CodeBERT
+python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode full --model-name codebert-sql
+```
+
+#### Fast-Mac Training Issues
+```bash
+# If fast-mac training fails, check Mac MPS availability
+python -c "import torch; print('MPS available:', torch.backends.mps.is_available())"
+
+# Fallback to CPU-only training
+python text_to_sql_train.py --cpu-mode --base-model microsoft/CodeBERT-base --mode train --max-samples 500
+```
+
+#### CodeBERT Response Quality
+If CodeBERT generates poor SQL:
+- **Expected**: Good for simple queries, may struggle with complex JOINs
+- **Solution**: Use CodeBERT for development, switch to CodeLlama for production
+- **Alternative**: Increase training samples: `--max-samples 2000`
+
+#### Memory Issues with CodeBERT
+```bash
+# Monitor memory usage during training
+python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode train --max-samples 200
+
+# Ultra-low memory mode
+python text_to_sql_train.py --cpu-mode --base-model microsoft/CodeBERT-base --mode train --max-samples 100 --no-quantization
+```
+
 ## 📊 Example Usage
 
-### Basic Query
+### CodeBERT Development Examples
+
+#### Basic Query (Good for CodeBERT)
 ```json
 {
   "schema": "CREATE TABLE products (id INT, name VARCHAR(100), price DECIMAL(10,2));",
@@ -235,29 +350,115 @@ python deployment_script.py --force
 }
 ```
 
-### Complex Query
+**CodeBERT Response:**
 ```json
 {
-  "schema": "CREATE TABLE customers (id INT, name VARCHAR(100)); CREATE TABLE orders (id INT, customer_id INT, total DECIMAL(10,2));",
-  "query": "Show top 5 customers by total order value"
+  "sql": "SELECT * FROM products WHERE price < 50.00;",
+  "model": "codebert-sql",
+  "response_time": 0.6,
+  "quality": "excellent"
 }
 ```
 
-## 🎯 Production Deployment
+#### Intermediate Query (Acceptable for CodeBERT)
+```json
+{
+  "schema": "CREATE TABLE orders (id INT, customer_id INT, total DECIMAL(10,2), order_date DATE);",
+  "query": "Show total sales for each month in 2024"
+}
+```
 
-### Security Considerations
-1. Change the Flask secret key
-2. Set `FLASK_ENV=production`
-3. Use a reverse proxy (nginx)
-4. Enable HTTPS
-5. Implement rate limiting
-6. Add authentication if needed
+**CodeBERT Response:**
+```json
+{
+  "sql": "SELECT DATE_FORMAT(order_date, '%Y-%m') as month, SUM(total) as total_sales FROM orders WHERE YEAR(order_date) = 2024 GROUP BY month;",
+  "model": "codebert-sql",
+  "response_time": 0.8,
+  "quality": "good"
+}
+```
 
-### Performance Optimization
-1. Use a production WSGI server (gunicorn)
-2. Enable caching for static assets
-3. Optimize database connections
-4. Monitor resource usage
-5. Scale horizontally if needed
+### Complex Query (Better with CodeLlama)
+```json
+{
+  "schema": "CREATE TABLE customers (id INT, name VARCHAR(100)); CREATE TABLE orders (id INT, customer_id INT, total DECIMAL(10,2)); CREATE TABLE order_items (id INT, order_id INT, product_id INT, quantity INT);",
+  "query": "Show top 5 customers by total order value with their most purchased product"
+}
+```
 
-The web application provides an intuitive interface for anyone to use the text-to-SQL model without command-line knowledge!
+**Recommendation**: Use CodeLlama-7B for complex multi-table queries like this.
+
+## 📊 Model Performance Comparison
+
+When choosing a model for your web app deployment:
+
+| Model | Training Time | Memory Usage | SQL Quality | Web App Response | Best For |
+|-------|---------------|--------------|-------------|------------------|----------|
+| **CodeBERT-base** | 15-25 min | ~2GB | Good | Fast | Development/Testing |
+| **CodeT5+ 770M** | 30-45 min | ~4GB | Very Good | Fast | Balanced Use |
+| **CodeLlama-7B** | 2-3 hours | 8-16GB | Excellent | Medium | Production |
+| **SQLCoder-7B** | 2-4 hours | 8-16GB | Excellent | Medium | Specialized SQL |
+
+### Model Selection Guide
+
+#### Choose **CodeBERT-base** for:
+- 🚀 Rapid prototyping and testing
+- 💻 Mac development environments
+- 🔄 Frequent model updates
+- 📚 Learning and experimentation
+- ⚡ Quick demos and presentations
+
+#### Choose **CodeLlama-7B** for:
+- 🏢 Production deployments
+- 🎯 Complex SQL requirements
+- 💪 High-performance servers
+- 📈 Large-scale applications
+
+## 🚀 Model-Specific Quick Start
+
+### CodeBERT-Base Model Setup (Recommended for Development)
+
+For fast prototyping and testing, we recommend using Microsoft's CodeBERT-base model:
+
+#### 1. Train CodeBERT Model
+```bash
+# Fast Mac training (15-25 minutes)
+python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode train
+
+# Full pipeline with deployment
+python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode full --model-name codebert-sql
+```
+
+#### 2. Start Web App with CodeBERT
+```bash
+# Default setup with CodeBERT model
+python start_webapp.py --model-name codebert-sql
+
+# Custom port with CodeBERT
+python start_webapp.py --port 8080 --model-name codebert-sql --debug
+```
+
+**CodeBERT Benefits for Web App:**
+- ⚡ **Fast Training**: 15-25 minutes vs 2-3 hours
+- 💾 **Low Memory**: ~2GB vs 8-16GB requirements
+- 🍎 **Mac Optimized**: Perfect for Apple Silicon development
+- 🔄 **Quick Iteration**: Rapid model updates and testing
+
+### Production Model Setup (CodeLlama-7B)
+
+For production deployments requiring highest SQL quality:
+
+#### 1. Train Production Model
+```bash
+# Full training (2-3 hours)
+python text_to_sql_train.py --mode full --max-samples 10000
+
+# GPU-optimized training
+python text_to_sql_train.py --mode full --device cuda --max-samples 20000
+```
+
+#### 2. Start Production Web App
+```bash
+# Production web app
+python start_webapp.py --port 80 --host 0.0.0.0 --model-name text-to-sql
+```

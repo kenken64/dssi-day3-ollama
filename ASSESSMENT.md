@@ -19,10 +19,11 @@ Based on the project documentation, compare and contrast the following model opt
 
 | Model Option | Base Size | Training Time | Use Case |
 |--------------|-----------|---------------|----------|
-| CodeLlama-7B | 13GB | 2-3 hours | ? |
-| CodeT5+ 770M | 770MB | ? | ? |
-| CodeT5+ 220M | 220MB | ? | ? |
-| SQLCoder-7B | 13GB | ? | ? |
+| CodeLlama-7B | 13GB | 2-3 hours | Large-scale SQL generation |
+| CodeT5+ 770M | 770MB | 30-45 min | Balanced performance/efficiency |
+| CodeT5+ 220M | 220MB | 15-20 min | Ultra-fast prototyping |
+| SQLCoder-7B | 13GB | 2-4 hours | Specialized SQL tasks |
+| **CodeBERT-base** | **~500MB** | **20-30 min** | **Quick experimentation** |
 
 **Tasks:**
 1. Fill in the missing information in the table above
@@ -42,12 +43,41 @@ Design a memory optimization strategy for training on the resource-constrained s
 ## Part B: Implementation Tasks (40 points)
 
 ### Question 3: Training Configuration (20 points)
-Write a complete `config.yaml` file for training a text-to-SQL model with the following requirements:
+Write a complete training command for the following scenario:
 
-- Use the most memory-efficient model suitable for production
-- Enable all available memory optimizations
-- Configure for Mac MPS training (no CUDA)
-- Set training for 1000 samples maximum
+**Scenario:** You need to quickly test the training pipeline using Microsoft's CodeBERT-base model on a Mac with Apple Silicon. You want to use aggressive optimizations for the fastest possible training with a small dataset.
+
+**Requirements:**
+- Use Microsoft CodeBERT-base as the foundation model
+- Enable aggressive Mac optimizations for fastest training
+- Run training only (not full pipeline)
+- Use the most memory-efficient settings possible
+
+**Your Task:**
+1. Write the complete command-line instruction
+2. Explain what each flag does and why you chose it
+3. Predict the expected training time and memory usage
+4. Identify any potential issues with this configuration
+
+**Example Command Structure:**
+```bash
+python text_to_sql_train.py [YOUR FLAGS HERE]
+```
+
+**Expected Command:**
+```bash
+python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode train
+```
+
+**Flag Explanations Required:**
+- `--fast-mac`: Purpose and specific optimizations applied
+- `--base-model microsoft/CodeBERT-base`: Model choice justification
+- `--mode train`: Why training-only vs full pipeline
+
+**Additional Considerations:**
+- Discuss CodeBERT vs CodeLlama for text-to-SQL tasks
+- Explain Mac MPS optimization benefits and limitations
+- Predict resource usage and training time
 - Enable adapter-only saving
 - Configure Ollama deployment with model name "company-sql-assistant"
 
@@ -56,15 +86,33 @@ Write a complete `config.yaml` file for training a text-to-SQL model with the fo
 ```
 
 ### Question 4: Command Line Implementation (20 points)
-Write the complete command-line instructions for:
+Write the complete command-line instructions for the following scenarios:
 
-1. **Training Command:** Train the model with fast Mac optimizations using 500 samples
-2. **Deployment Command:** Deploy the trained model to Ollama
-3. **Testing Command:** Test the deployed model with a custom query
-4. **Troubleshooting:** If deployment fails with "model not found" error, provide the fix
+1. **CodeBERT Training Command:** Train using Microsoft CodeBERT-base with aggressive Mac optimizations
+   ```bash
+   python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode train
+   ```
 
+2. **Production Training Command:** Train a production-ready model using 2000 samples
+3. **Deployment Command:** Deploy the trained CodeBERT model to Ollama with custom name "codebert-sql"
+4. **Testing Command:** Test the deployed model with CPU-only mode
+
+**Required Analysis:**
+- Explain each flag in the CodeBERT command
+- Compare expected results vs default CodeLlama training
+- Predict memory usage and training time
+- Identify potential compatibility issues
+
+**Additional Commands to Complete:**
 ```bash
-# Your commands here
+# Production training (fill in flags):
+python text_to_sql_train.py [YOUR FLAGS]
+
+# Deployment with custom name (fill in flags):
+python text_to_sql_train.py [YOUR FLAGS]
+
+# CPU-only testing (fill in flags):
+python text_to_sql_train.py [YOUR FLAGS]
 ```
 
 ---
@@ -176,12 +224,22 @@ CREATE TABLE orders (
 
 ### Part A - Model Selection
 - **Correct Choice:** CodeT5+ 770M for balanced performance and resources
+- **CodeBERT Alternative:** CodeBERT-base for rapid prototyping and testing
 - **Key Points:** Memory constraints, training time, deployment size
 - **Trade-offs:** Size vs accuracy, speed vs quality
 
 ### Part B - Implementation
-- **Config Requirements:** Mac optimizations, adapter saving, memory settings
-- **Commands:** --fast-mac flag, proper model selection, error handling
+- **CodeBERT Config:** `--fast-mac --base-model microsoft/CodeBERT-base --mode train`
+- **Mac Optimizations:** Batch size 2, max length 128, single epoch
+- **Expected Performance:** 20-30 min training, ~2GB memory usage
+- **Commands:** Proper flag usage, model selection rationale
+
+### CodeBERT-Specific Assessment Points:
+- **Model Size:** ~500MB vs 13GB CodeLlama (efficient for testing)
+- **Training Speed:** 20-30 minutes with fast-mac optimizations
+- **Memory Usage:** ~2GB RAM vs 8-16GB for larger models
+- **Use Case:** Excellent for prototyping, limited for complex SQL
+- **Mac Compatibility:** Native MPS support, no quantization issues
 
 ### Part C - Problem Solving
 - **LoRA Error:** Auto-detection mechanism, target module mapping
@@ -192,3 +250,100 @@ CREATE TABLE orders (
 - **Prompt Format:** Schema + natural language structure
 
 This assessment tests both theoretical knowledge and practical implementation skills needed for real-world text-to-SQL deployment.
+
+---
+
+## Practical Assessment: CodeBERT Training Execution
+
+### Real-World Scenario: Quick Model Validation
+
+**Command to Execute:**
+```bash
+python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode train
+```
+
+### Expected Outcomes & Assessment Criteria
+
+#### 1. **Training Performance Metrics (20 points)**
+Students should observe and report:
+- **Memory Usage:** ~1.5-2.5GB peak memory consumption
+- **Training Time:** 15-25 minutes on Apple Silicon Mac
+- **Model Size:** Final adapter files ~50-100MB vs full model ~500MB
+- **Sample Processing:** ~500 samples in single epoch
+
+#### 2. **Configuration Validation (15 points)**
+Verify students understand these auto-applied settings:
+```yaml
+# Auto-applied with --fast-mac
+batch_size: 2
+max_length: 128
+num_epochs: 1
+max_samples: 500
+gradient_accumulation_steps: 8
+use_gradient_checkpointing: False
+```
+
+#### 3. **Model Comparison Analysis (15 points)**
+Students should compare CodeBERT-base vs default CodeLlama:
+
+| Metric | CodeBERT-base | CodeLlama-7B |
+|--------|---------------|--------------|
+| Base Size | 500MB | 13GB |
+| Training Time | 20 min | 2-3 hours |
+| Memory Usage | 2GB | 8-16GB |
+| SQL Quality | Good for simple | Excellent |
+| Production Ready | Testing only | Yes |
+
+#### 4. **Troubleshooting Skills (10 points)**
+Common issues students might encounter:
+
+**Issue 1:** Model loading failure
+```
+Solution: CodeBERT uses different architecture - auto-detection handles this
+```
+
+**Issue 2:** MPS compatibility
+```
+Solution: --fast-mac automatically disables problematic quantization
+```
+
+**Issue 3:** Adapter saving
+```
+Expected: Only LoRA adapters saved (~50MB) not full model
+```
+
+### Grading Rubric for CodeBERT Assessment
+
+#### **Excellent (90-100%)**
+- Successfully executes command and explains all optimizations
+- Accurately predicts and measures performance metrics
+- Clearly articulates CodeBERT vs CodeLlama trade-offs
+- Demonstrates understanding of Mac MPS optimizations
+
+#### **Good (80-89%)**
+- Executes command successfully with minor explanation gaps
+- Most performance predictions accurate
+- Understands basic model differences
+- Can identify optimization benefits
+
+#### **Satisfactory (70-79%)**
+- Command execution successful but limited analysis
+- Some performance understanding
+- Basic awareness of model differences
+- Follows instructions without deep insight
+
+#### **Needs Improvement (<70%)**
+- Command execution issues or failure to explain
+- Poor performance prediction or measurement
+- Limited understanding of optimizations
+- Cannot articulate model selection rationale
+
+### Key Learning Objectives Assessed
+
+1. **Practical CLI Usage:** Proper flag usage and command construction
+2. **Resource Management:** Understanding memory and time constraints
+3. **Model Selection:** Choosing appropriate models for specific use cases
+4. **Optimization Understanding:** Mac-specific and fast training concepts
+5. **Performance Analysis:** Measuring and interpreting training results
+
+This practical assessment validates both theoretical knowledge and hands-on implementation skills essential for production ML deployment.
