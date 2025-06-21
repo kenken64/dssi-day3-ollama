@@ -43,3 +43,6 @@ plotly>=5.17.0
 # Web framework and HTTP client
 flask>=2.3.0
 requests>=2.31.0
+
+# System information
+psutil>=5.9.0

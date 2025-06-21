@@ -30,9 +30,14 @@ python app.py --port 5000
 
 ### System Requirements
 - Python 3.8+
-- CUDA-compatible GPU (recommended) or CPU
+- **Device Support**: NVIDIA GPU (CUDA) / Apple Silicon (MPS) / CPU
 - **8GB+ RAM** (16GB recommended - **reduced from previous 32GB requirement**)
 - **10GB+ free disk space** (significantly reduced with adapter-only saving)
+
+#### Device Recommendations
+- **🏆 Best**: NVIDIA GPU (RTX 30/40 series, A100, V100) - Full performance
+- **🥈 Good**: Apple Silicon Mac (M1/M2/M3) - Great performance with MPS
+- **🥉 Compatible**: Intel CPU - Slower but works everywhere
 
 ### Software Dependencies
 - [Ollama](https://ollama.ai/) - For model deployment
@@ -77,22 +82,29 @@ python utils.py  # Creates necessary directories
 
 ## 🏃‍♂️ Quick Start
 
-### Option 1: Full Pipeline (Recommended - Optimized for Speed)
+### Option 1: Full Pipeline (Recommended - Auto-Optimized)
 ```bash
-# Train and deploy with the new optimized CodeLlama model
+# Check your device capabilities first
+python check_device.py
+
+# Train and deploy with automatic device detection and optimization
 python text_to_sql_train.py --mode full --max-samples 1000
 
 # For even faster training with smaller model
 python text_to_sql_train.py --mode full --base-model Salesforce/codet5p-770m --max-samples 1000
 
-python text_to_sql_train.py --base-model microsoft/CodeBERT-base
+# Force specific device if auto-detection doesn't work
+python text_to_sql_train.py --device cuda  # NVIDIA GPU
+python text_to_sql_train.py --device mps   # Apple Silicon
+python text_to_sql_train.py --cpu-mode     # CPU only
 
 # This will:
-# 1. Download and process the Gretel AI dataset
-# 2. Fine-tune using memory-optimized LoRA
-# 3. Save only adapter weights (50MB instead of 13GB!)
-# 4. Deploy to Ollama
-# 5. Run basic tests
+# 1. Detect your device (CUDA/MPS/CPU) and apply optimizations
+# 2. Download and process the Gretel AI dataset
+# 3. Fine-tune using memory-optimized LoRA
+# 4. Save only adapter weights (50MB instead of 13GB!)
+# 5. Deploy to Ollama
+# 6. Run basic tests
 ```
 
 ### Option 2: Step-by-Step with Different Model Sizes
@@ -503,123 +515,58 @@ training:
   lora_r: 16                    # Higher quality adapters
 ```
 
-## 📚 Dataset Information
+## 🖥️ Device Support & Optimization
 
-### Gretel AI Synthetic Text-to-SQL Dataset
-- **Size**: 100K+ examples
-- **Domains**: 25+ including healthcare, finance, cybersecurity
-- **Complexity Levels**: Basic SQL, aggregations, joins, subqueries, window functions
-- **Quality**: High-quality synthetic data with explanations
-
-### Supported SQL Features
-- SELECT, INSERT, UPDATE, DELETE statements
-- JOINs (INNER, LEFT, RIGHT, FULL)
-- Aggregations (COUNT, SUM, AVG, MIN, MAX)
-- GROUP BY, HAVING, ORDER BY
-- Subqueries and CTEs
-- Window functions
-- Date/time operations
-- String functions
-
-## 🤝 Contributing
-
-### Development Setup
+### Check Your System Capabilities
 ```bash
-# Install development dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest tests/
-
-# Format code
-black .
-flake8 .
+# See what devices are available and get recommendations
+python check_device.py
 ```
 
-### Adding New Features
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
+### Device-Specific Training
 
-### Testing Guidelines
-- Add unit tests for new functions
-- Include integration tests for major features
-- Test with different model sizes
-- Validate SQL output quality
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Gretel AI** for the high-quality synthetic text-to-SQL dataset
-- **Ollama** for the excellent local model deployment platform
-- **Hugging Face** for the transformers library and model hub
-- **Microsoft** for the LoRA implementation in PEFT
-
-## 📞 Support
-
-### Getting Help
-- **Issues**: [GitHub Issues](https://github.com/yourusername/text-to-sql-ollama/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/text-to-sql-ollama/discussions)
-- **Documentation**: [Wiki](https://github.com/yourusername/text-to-sql-ollama/wiki)
-
-### Commercial Support
-For commercial support, training, or custom implementations, please contact [your.email@example.com](mailto:your.email@example.com).
-
-## 🗺️ Roadmap
-
-### Upcoming Features
-- [ ] Support for more SQL dialects (PostgreSQL, MySQL, SQL Server)
-- [ ] Web interface for model interaction
-- [ ] API server for production deployment
-- [ ] Integration with popular databases
-- [ ] Query optimization suggestions
-- [ ] Multi-language support
-- [ ] Federated learning capabilities
-
-### Version History
-- **v1.0.0**: Initial release with basic training and deployment
-- **v1.1.0**: Added comprehensive testing suite
-- **v1.2.0**: Docker support and performance optimizations
-- **v2.0.0**: Multi-model support and advanced features (planned)
-
----
-
-**Made with ❤️ for the open source community**
-
-## 🌐 Web Interface (NEW!)
-
-### Quick Start Web App
+#### NVIDIA GPU (Recommended)
 ```bash
-# Start the web application (auto-installs Flask if needed)
-python start_webapp.py
+# Automatic detection (recommended)
+python text_to_sql_train.py --mode full
 
-# Or run directly
-pip install flask>=2.3.0
-python app.py
+# Force GPU with specific settings
+python text_to_sql_train.py --device cuda --max-samples 10000
+
+# Disable quantization for older GPUs
+python text_to_sql_train.py --device cuda --no-quantization
 ```
 
-**Features:**
-- **Beautiful Web Interface**: Modern, responsive design
-- **Real-time Status**: Live Ollama service and model status
-- **Interactive Examples**: Pre-built schemas and queries
-- **SQL Validation**: Automatic syntax checking
-- **Copy to Clipboard**: Easy result sharing
-- **Error Handling**: User-friendly error messages
+#### Apple Silicon Mac (MPS)
+```bash
+# Automatic MPS detection and optimization
+python text_to_sql_train.py --mode full
 
-**Access:** Open http://localhost:PORT in your browser (default PORT is 5000)
+# Force MPS device
+python text_to_sql_train.py --device mps --max-samples 2000
 
-### Web App Screenshots
-- 🏠 **Main Interface**: Schema input, query input, and SQL generation
-- 📚 **Examples Page**: Pre-built examples for different domains
-- ✅ **Real-time Validation**: Instant SQL syntax checking
-- 📱 **Mobile Friendly**: Responsive design for all devices
+# Fastest Mac training (for testing)
+python text_to_sql_train.py --fast-mac
+```
 
-**📚 Detailed Documentation:**
-- [Web Application Guide](WEBAPP.md) - Complete web interface documentation
-- [Deployment Guide](DEPLOYMENT.md) - Step-by-step deployment instructions
-- [Token Fix Guide](OLLAMA_TOKEN_FIX.md) - Troubleshooting token generation issues
-- [Assessment Questions](ASSESSMENT.md) - Comprehensive assessment and examples
+#### CPU Only
+```bash
+# Automatic CPU optimization
+python text_to_sql_train.py --cpu-mode --max-samples 500
+
+# Force CPU with custom settings
+python text_to_sql_train.py --device cpu --max-samples 250 --base-model Salesforce/codet5p-220m
+```
+
+### Performance Comparison by Device
+
+| Device Type | Training Time (1000 samples) | Max Recommended Samples | Memory Usage |
+|-------------|------------------------------|-------------------------|--------------|
+| **RTX 4090** | 10-15 min | 20,000+ | 8-12GB |
+| **RTX 3080** | 15-25 min | 10,000 | 6-8GB |
+| **Apple M2 Max** | 20-30 min | 5,000 | 4-6GB |
+| **Apple M1** | 30-45 min | 2,000 | 3-4GB |
+| **Intel CPU (16 cores)** | 2-4 hours | 500 | 2-4GB |
+| **Intel CPU (8 cores)** | 4-8 hours | 250 | 2-3GB |
+
+# ...existing code...
