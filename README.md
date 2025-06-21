@@ -2,24 +2,29 @@
 
 A comprehensive pipeline for training and deploying text-to-SQL models using the Gretel AI synthetic dataset and Ollama for local deployment. **Now optimized for smaller models and efficient memory usage!**
 
+## � Table of Contents
+
+- [�🚀 Features](#-features)
+- [📚 Complete Documentation](#-complete-documentation)
+- [📋 Prerequisites](#-prerequisites)
+- [🛠️ Installation](#️-installation)
+- [⚡ Quick Start](#-quick-start)
+- [📊 Usage Examples](#-usage-examples)
+- [🎛️ Configuration](#️-configuration)
+- [🔧 Device Support](#-device-support)
+- [🚀 Web Application](#-web-application)
+- [📦 Deployment](#-deployment)
+- [🧪 Testing](#-testing)
+- [📈 Performance](#-performance)
+- [🐛 Troubleshooting](#-troubleshooting)
+- [🤝 Contributing](#-contributing)
+
 ## 🚀 Features
 
 - **Complete Training Pipeline**: Fine-tune models on the Gretel AI synthetic text-to-SQL dataset
 - **Multiple Base Models**: Support for CodeLlama, SQLCoder, and other popular models
 - **Efficient Training**: Uses LoRA (Low-Rank Adaptation) for memory-efficient fine-tuning
-- **Intelligent Model Adaptation**: Auto-detects LoRA t### Quick Start Web App
-```bash
-# Start the web application (auto-installs Flask if needed)
-python start_webapp.py
-
-# Or with custom port and options
-python start_webapp.py --port 8080 --debug
-python start_webapp.py --host 127.0.0.1 --port 3000 --model-name my-sql-model
-
-# Or run directly
-pip install flask>=2.3.0 requests>=2.31.0
-python app.py --port 5000
-```ules for any model architecture
+- **Intelligent Model Adaptation**: Auto-detects LoRA target modules for any model architecture
 - **Ollama Integration**: Deploy models locally with Ollama for fast inference
 - **Memory Optimized**: Smart adapter-only saving reduces file sizes by 100x (50MB vs 13GB)
 - **Comprehensive Testing**: Built-in test suite with performance benchmarks
@@ -569,4 +574,151 @@ python text_to_sql_train.py --device cpu --max-samples 250 --base-model Salesfor
 | **Intel CPU (16 cores)** | 2-4 hours | 500 | 2-4GB |
 | **Intel CPU (8 cores)** | 4-8 hours | 250 | 2-3GB |
 
-# ...existing code...
+## 📚 Complete Documentation
+
+This project includes comprehensive documentation for all aspects of text-to-SQL model training and deployment:
+
+### 🎯 **Core Documentation**
+- **[README.md](README.md)** - Main overview, installation, and quick start guide
+- **[SCRIPT_FLOW_DIAGRAM.md](SCRIPT_FLOW_DIAGRAM.md)** - Complete execution flow and logic diagrams
+- **[DEVICE_SUPPORT.md](DEVICE_SUPPORT.md)** - Device-specific optimization guide (CPU, Mac MPS, NVIDIA GPU)
+
+### 🚀 **Deployment & Operations**
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Model deployment to Ollama with troubleshooting
+- **[WEBAPP.md](WEBAPP.md)** - Web application setup, API usage, and production deployment
+- **[OLLAMA_TOKEN_FIX.md](OLLAMA_TOKEN_FIX.md)** - Fix for token generation loops and deployment issues
+
+### 🎓 **Learning & Assessment**
+- **[ASSESSMENT.md](ASSESSMENT.md)** - Comprehensive practical assessment with CodeBERT examples
+- **[text_to_sql_ollama_guide.md](text_to_sql_ollama_guide.md)** - Original guide and background information
+
+### 🛠️ **Quick Reference**
+
+| Need | Documentation | Key Commands |
+|------|---------------|--------------|
+| **Quick Start** | [README.md](README.md) | `python text_to_sql_train.py --mode full` |
+| **Mac Development** | [DEVICE_SUPPORT.md](DEVICE_SUPPORT.md) | `python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode train` |
+| **GPU Training** | [DEVICE_SUPPORT.md](DEVICE_SUPPORT.md) | `python text_to_sql_train.py --device cuda --mode full` |
+| **Web Interface** | [WEBAPP.md](WEBAPP.md) | `python start_webapp.py --port 5000` |
+| **Deployment Issues** | [DEPLOYMENT.md](DEPLOYMENT.md) | `python deployment_script.py` |
+| **Token Problems** | [OLLAMA_TOKEN_FIX.md](OLLAMA_TOKEN_FIX.md) | `python fix_ollama_tokens.py` |
+| **Assessment/Testing** | [ASSESSMENT.md](ASSESSMENT.md) | Practical exercises and evaluation |
+| **Flow Understanding** | [SCRIPT_FLOW_DIAGRAM.md](SCRIPT_FLOW_DIAGRAM.md) | Visual execution diagrams |
+
+### 📊 **Documentation Highlights**
+
+#### **For Developers:**
+- **[SCRIPT_FLOW_DIAGRAM.md](SCRIPT_FLOW_DIAGRAM.md)**: Understand the complete pipeline flow
+- **[DEVICE_SUPPORT.md](DEVICE_SUPPORT.md)**: Optimize for your hardware (Mac/GPU/CPU)
+- **[WEBAPP.md](WEBAPP.md)**: Build and deploy web interfaces
+
+#### **For Operations:**
+- **[DEPLOYMENT.md](DEPLOYMENT.md)**: Production deployment strategies
+- **[OLLAMA_TOKEN_FIX.md](OLLAMA_TOKEN_FIX.md)**: Troubleshoot common issues
+- **[WEBAPP.md](WEBAPP.md)**: Monitor and scale web applications
+
+#### **For Learning:**
+- **[ASSESSMENT.md](ASSESSMENT.md)**: Hands-on exercises with CodeBERT-base
+- **[text_to_sql_ollama_guide.md](text_to_sql_ollama_guide.md)**: Background and concepts
+- **All files**: Extensively commented code and examples
+
+---
+
+## 🗺️ Project Navigation & Documentation Map
+
+### 📁 **Project Structure Overview**
+
+```
+dssi-day3-ollama/
+├── 📄 Core Scripts
+│   ├── text_to_sql_train.py      # Main training pipeline (fully commented)
+│   ├── app.py                    # Web application
+│   ├── deployment_script.py      # Ollama deployment
+│   └── start_webapp.py          # Web app launcher
+├── 📚 Documentation
+│   ├── README.md                 # This file - main overview
+│   ├── SCRIPT_FLOW_DIAGRAM.md    # Complete execution flow
+│   ├── DEVICE_SUPPORT.md         # Hardware optimization guide
+│   ├── WEBAPP.md                 # Web app setup & deployment
+│   ├── DEPLOYMENT.md             # Ollama deployment guide
+│   ├── ASSESSMENT.md             # Practical exercises & evaluation
+│   ├── OLLAMA_TOKEN_FIX.md       # Troubleshooting token issues
+│   └── text_to_sql_ollama_guide.md # Original background guide
+├── 🛠️ Utilities
+│   ├── utils.py                  # Helper functions
+│   ├── check_device.py           # Device capability detection
+│   ├── fix_ollama_tokens.py      # Token loop fix
+│   └── test_ollama_model.py      # Model testing
+├── 🌐 Web Interface
+│   ├── templates/                # HTML templates
+│   ├── static/                   # CSS, JS, images
+│   └── Dockerfile.webapp         # Web app containerization
+└── ⚙️ Configuration
+    ├── config.yaml               # Training configuration
+    ├── requirements.txt          # Python dependencies
+    └── Modelfile                 # Ollama model configuration
+```
+
+### 🎯 **Documentation Journey Guide**
+
+#### **🚀 I want to get started quickly**
+1. Read **[README.md](README.md)** (this file) - Overview and installation
+2. Run: `python text_to_sql_train.py --mode full`
+3. Check **[WEBAPP.md](WEBAPP.md)** for web interface
+
+#### **🍎 I'm developing on Mac**
+1. **[DEVICE_SUPPORT.md](DEVICE_SUPPORT.md)** - Mac MPS optimization
+2. Run: `python text_to_sql_train.py --fast-mac --base-model microsoft/CodeBERT-base --mode train`
+3. **[WEBAPP.md](WEBAPP.md)** - Mac-specific web app setup
+
+#### **💻 I'm using CPU only**
+1. **[DEVICE_SUPPORT.md](DEVICE_SUPPORT.md)** - CPU optimization strategies
+2. **[ASSESSMENT.md](ASSESSMENT.md)** - CPU-friendly exercises
+
+#### **🖥️ I have NVIDIA GPU**
+1. **[DEVICE_SUPPORT.md](DEVICE_SUPPORT.md)** - GPU optimization guide
+2. **[WEBAPP.md](WEBAPP.md)** - High-performance deployment
+
+#### **🏢 I want production deployment**
+1. **[DEPLOYMENT.md](DEPLOYMENT.md)** - Production deployment strategies
+2. **[WEBAPP.md](WEBAPP.md)** - Production web app setup
+3. **[OLLAMA_TOKEN_FIX.md](OLLAMA_TOKEN_FIX.md)** - Troubleshooting
+
+#### **🎓 I want to learn and practice**
+1. **[ASSESSMENT.md](ASSESSMENT.md)** - Hands-on exercises
+2. **[SCRIPT_FLOW_DIAGRAM.md](SCRIPT_FLOW_DIAGRAM.md)** - Understand the pipeline
+3. **text_to_sql_train.py** - Read the extensively commented code
+
+#### **🔧 I need to understand the code**
+1. **[SCRIPT_FLOW_DIAGRAM.md](SCRIPT_FLOW_DIAGRAM.md)** - Visual execution flow
+2. **text_to_sql_train.py** - Main pipeline with detailed comments
+3. **[DEVICE_SUPPORT.md](DEVICE_SUPPORT.md)** - Device-specific optimizations
+
+#### **🐛 I'm having issues**
+1. **[OLLAMA_TOKEN_FIX.md](OLLAMA_TOKEN_FIX.md)** - Token generation problems
+2. **[DEPLOYMENT.md](DEPLOYMENT.md)** - Deployment troubleshooting
+3. **[DEVICE_SUPPORT.md](DEVICE_SUPPORT.md)** - Device-specific issues
+
+### 🎉 **Project Highlights**
+
+- **🔥 Latest Feature**: CodeBERT-base support for 15-minute training on Mac
+- **💡 Smart Design**: Auto-device detection with fallback strategies
+- **📱 User Friendly**: Beautiful web interface for non-technical users
+- **🎯 Production Ready**: Complete deployment pipeline with monitoring
+- **📚 Well Documented**: Every component thoroughly explained
+- **🧪 Tested**: Comprehensive assessment and testing framework
+
+### 🤝 **Contributing & Community**
+
+This project demonstrates best practices for:
+- **ML Pipeline Development**: End-to-end training and deployment
+- **Device Optimization**: Cross-platform compatibility and performance
+- **Documentation**: Comprehensive guides for all user types
+- **Code Quality**: Extensively commented and well-structured code
+- **User Experience**: Web interfaces and command-line tools
+
+**Start with any document above based on your needs - they're all interconnected and cross-referenced for easy navigation!**
+
+---
+
+*Built with ❤️ for the data science and ML community*
