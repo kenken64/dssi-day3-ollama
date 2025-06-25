@@ -120,6 +120,18 @@ class TextToSQLConfig:
             "use_flash_attention": True,  # Advanced attention optimization (if available)
         }
         
+        # AMD GPU (ROCm/HIP) optimizations for AMD Radeon and Instinct cards
+        # ROCm provides GPU acceleration for AMD GPUs but has different characteristics than CUDA
+        self.amd_optimizations = {
+            "moderate_batch_size": 4,      # Conservative batch size for AMD GPU memory
+            "moderate_grad_accum": 6,      # Balanced gradient accumulation 
+            "standard_max_length": 384,    # Moderate sequence length for ROCm processing
+            "standard_epochs": 3,          # Standard training iterations
+            "eval_moderately": 750,        # Moderate evaluation frequency
+            "conservative_quantization": True,  # Use quantization carefully on AMD
+            "use_fp32": True,              # ROCm often works better with fp32
+        }
+        
         # CPU optimizations for systems without dedicated GPU acceleration
         # CPU training is slower but works on any system
         self.cpu_optimizations = {
@@ -200,6 +212,42 @@ class TextToSQLConfig:
         # GPU users can benefit from full dataset training
         if self.max_samples is None:
             logger.info("💡 TIP: GPU detected - you can train on the full dataset for best results")
+        
+    def apply_amd_optimizations(self):
+        """
+        Apply AMD GPU-specific optimizations for ROCm (Radeon Open Compute) platforms.
+        
+        ROCm provides GPU acceleration for AMD Radeon and Instinct cards.
+        These optimizations are tailored for AMD architecture and ROCm characteristics.
+        """
+        logger.info("Applying AMD GPU optimizations for ROCm platforms...")
+        
+        # Adjust batch settings for AMD GPU memory characteristics
+        self.batch_size = self.amd_optimizations["moderate_batch_size"]
+        self.gradient_accumulation_steps = self.amd_optimizations["moderate_grad_accum"]
+        
+        # Set standard sequence length and epochs for AMD training
+        self.max_length = self.amd_optimizations["standard_max_length"]
+        self.num_epochs = self.amd_optimizations["standard_epochs"]
+        
+        # Moderate evaluation frequency to balance performance and resource usage
+        eval_steps = self.amd_optimizations["eval_moderately"]
+        
+        # Use conservative quantization settings for AMD compatibility
+        if self.amd_optimizations["conservative_quantization"]:
+            self.use_4bit = True
+            self.bnb_4bit_compute_dtype = torch.float32  # Use float32 for ROCm compatibility
+            logger.info("Enabled conservative 4-bit quantization for AMD ROCm compatibility")
+        else:
+            self.use_4bit = False
+        
+        logger.info(f"AMD optimizations applied: batch_size={self.batch_size}, "
+                   f"grad_accum={self.gradient_accumulation_steps}, "
+                   f"max_length={self.max_length}, epochs={self.num_epochs}")
+        
+        # Recommendations for AMD users
+        if self.max_samples is None:
+            logger.info("💡 TIP: For best results on AMD, consider training on the full dataset")
         
     def apply_cpu_optimizations(self):
         """
@@ -525,12 +573,54 @@ class ModelTrainer:
         self.model = None      # Will hold the loaded model
         self.tokenizer = None  # Will hold the tokenizer
         
+    def detect_amd_gpu(self):
+        """
+        Helper method to detect AMD GPU availability and ROCm support.
+        
+        Returns:
+            Tuple of (has_amd_gpu, gpu_info) where gpu_info contains details if available
+        """
+        import subprocess
+        import os
+        
+        # Check for AMD GPU environment variables
+        hip_visible = os.environ.get('HIP_VISIBLE_DEVICES')
+        rocm_path = os.environ.get('ROCM_PATH')
+        
+        # Check if we have ROCm environment setup
+        if hip_visible is not None or rocm_path is not None:
+            logger.info(f"AMD GPU environment detected: HIP_VISIBLE_DEVICES={hip_visible}, ROCM_PATH={rocm_path}")
+            return True, {"source": "environment", "hip_devices": hip_visible, "rocm_path": rocm_path}
+        
+        # Try to detect via rocm-smi
+        try:
+            result = subprocess.run(['rocm-smi', '--showproductname'], 
+                                  capture_output=True, text=True, timeout=5)
+            if result.returncode == 0 and result.stdout.strip():
+                gpu_info = result.stdout.strip()
+                logger.info(f"AMD GPU detected via ROCm: {gpu_info}")
+                return True, {"source": "rocm-smi", "gpu_info": gpu_info}
+        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+            pass
+        
+        # Check if PyTorch CUDA backend is actually ROCm/HIP
+        if torch.cuda.is_available():
+            try:
+                device_name = torch.cuda.get_device_name(0)
+                if any(keyword in device_name.upper() for keyword in ['AMD', 'RADEON', 'GFX', 'INSTINCT']):
+                    logger.info(f"AMD GPU detected via PyTorch: {device_name}")
+                    return True, {"source": "pytorch", "device_name": device_name}
+            except:
+                pass
+        
+        return False, {}
+        
     def detect_device_capabilities(self):
         """
         Detect device capabilities and adjust training settings accordingly.
         
         This method:
-        1. Detects available hardware (CPU, Mac MPS, NVIDIA GPU)
+        1. Detects available hardware (CPU, Mac MPS, NVIDIA GPU, AMD GPU)
         2. Automatically applies device-specific optimizations
         3. Determines the best precision settings (fp16, bf16, fp32)
         4. Provides helpful information about detected hardware
@@ -540,8 +630,18 @@ class ModelTrainer:
         """
         device = torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         
+        # First, check for AMD GPU before other devices
+        has_amd_gpu, amd_info = self.detect_amd_gpu()
+        
         # Detect device type and apply corresponding optimizations
-        if torch.backends.mps.is_available():
+        if has_amd_gpu:
+            device_type = "amd"
+            logger.info("Detected AMD GPU with ROCm support")
+            if amd_info.get("gpu_info"):
+                logger.info(f"AMD GPU details: {amd_info['gpu_info']}")
+            # Automatically apply AMD optimizations for ROCm performance
+            self.config.apply_amd_optimizations()
+        elif torch.backends.mps.is_available():
             device_type = "mps"
             logger.info("Detected Apple Silicon Mac with MPS backend")
             # Automatically apply Mac optimizations for better MPS performance
@@ -566,7 +666,12 @@ class ModelTrainer:
         use_fp16 = False  # 16-bit floating point for speed
         use_bf16 = False  # Brain float 16 for better numerical stability
         
-        if device_type == "cuda":
+        if device_type == "amd":
+            # AMD ROCm often works better with fp32, especially for stability
+            logger.info("AMD GPU detected: Using fp32 for ROCm compatibility")
+            use_fp16 = False
+            use_bf16 = False
+        elif device_type == "cuda":
             # Check GPU compute capability for advanced precision support
             major, minor = torch.cuda.get_device_capability()
             if major >= 8:  # Modern GPUs (A100, RTX 30/40 series)
@@ -660,7 +765,12 @@ class ModelTrainer:
             torch_dtype = torch.float16  # Default precision
             device_map = "auto"          # Default device mapping
             
-            if device_type == "mps":
+            if device_type == "amd":
+                # AMD ROCm works better with float32 for stability
+                torch_dtype = torch.float32  # ROCm compatibility
+                device_map = "auto"          # Let Transformers handle AMD GPU memory allocation
+                logger.info("Using float32 and auto device mapping for AMD ROCm")
+            elif device_type == "mps":
                 # MPS (Apple Silicon) works better with specific settings
                 torch_dtype = torch.float32  # MPS has issues with fp16 in some cases
                 device_map = None            # Let MPS handle device placement automatically
@@ -1216,8 +1326,10 @@ def main():
     # Device and optimization options
     parser.add_argument("--fast-mac", action="store_true", 
                         help="Enable aggressive Mac optimizations for fastest possible training")
-    parser.add_argument("--device", choices=["auto", "cpu", "cuda", "mps"], default="auto", 
+    parser.add_argument("--device", choices=["auto", "cpu", "cuda", "mps", "amd"], default="auto", 
                         help="Force specific device (auto=detect automatically)")
+    parser.add_argument("--amd-mode", action="store_true", 
+                        help="Enable AMD GPU optimizations (ROCm required)")
     parser.add_argument("--no-quantization", action="store_true", 
                         help="Disable 4-bit quantization (uses more memory)")
     parser.add_argument("--cpu-mode", action="store_true", 
@@ -1256,6 +1368,11 @@ def main():
         logger.info("🖥️  CPU-only mode enabled")
         config.apply_cpu_optimizations()
         config.use_4bit = False  # Disable quantization for CPU compatibility
+        
+    if args.amd_mode or args.device == "amd":
+        logger.info("🔴 AMD GPU mode enabled")
+        config.apply_amd_optimizations()
+        logger.info("💡 Ensure ROCm and PyTorch ROCm are installed for optimal performance")
         
     if args.no_quantization:
         logger.info("🔧 Quantization disabled by user")

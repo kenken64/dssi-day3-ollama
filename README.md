@@ -35,20 +35,23 @@ A comprehensive pipeline for training and deploying text-to-SQL models using the
 
 ### System Requirements
 - Python 3.8+
-- **Device Support**: NVIDIA GPU (CUDA) / Apple Silicon (MPS) / CPU
+- **Device Support**: NVIDIA GPU (CUDA) / Apple Silicon (MPS) / AMD GPU (ROCm) / CPU
 - **8GB+ RAM** (16GB recommended - **reduced from previous 32GB requirement**)
 - **10GB+ free disk space** (significantly reduced with adapter-only saving)
 
 #### Device Recommendations
 - **🏆 Best**: NVIDIA GPU (RTX 30/40 series, A100, V100) - Full performance
 - **🥈 Good**: Apple Silicon Mac (M1/M2/M3) - Great performance with MPS
+- **🥈 Good**: AMD GPU with ROCm (Instinct MI series, RX 6000/7000) - ROCm acceleration
 - **🥉 Compatible**: Intel CPU - Slower but works everywhere
+- **❌ Not Supported**: AMD MX300x - Use CPU fallback instead
 
 ### Software Dependencies
 - [Ollama](https://ollama.ai/) - For model deployment
 - PyTorch 2.0+
 - Transformers 4.36+
-- CUDA Toolkit (for GPU training)
+- CUDA Toolkit (for NVIDIA GPU training)
+- ROCm (for AMD GPU training) - **Note: MX300x not supported**
 
 ## 🛠️ Installation
 
@@ -101,10 +104,17 @@ python text_to_sql_train.py --mode full --base-model Salesforce/codet5p-770m --m
 # Force specific device if auto-detection doesn't work
 python text_to_sql_train.py --device cuda  # NVIDIA GPU
 python text_to_sql_train.py --device mps   # Apple Silicon
+python text_to_sql_train.py --device amd   # AMD GPU (ROCm required)
 python text_to_sql_train.py --cpu-mode     # CPU only
 
+# Special cases
+python text_to_sql_train.py --amd-mode --max-samples 3000  # AMD GPU with optimizations
+
+# For AMD MX300x users (not ROCm supported)
+python text_to_sql_train.py --cpu-mode --max-samples 500 --base-model Salesforce/codet5p-220m
+
 # This will:
-# 1. Detect your device (CUDA/MPS/CPU) and apply optimizations
+# 1. Detect your device (CUDA/MPS/AMD/CPU) and apply optimizations
 # 2. Download and process the Gretel AI dataset
 # 3. Fine-tune using memory-optimized LoRA
 # 4. Save only adapter weights (50MB instead of 13GB!)

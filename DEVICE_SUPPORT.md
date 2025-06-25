@@ -13,7 +13,8 @@ The Text-to-SQL training script now provides comprehensive support for all major
 | **NVIDIA GPU** | ✅ Full Support | bf16/fp16/fp32 | ✅ 4-bit | 🏆 Excellent | High |
 | **Apple Silicon** | ✅ Full Support | fp32 | ⚠️ Limited | 🥈 Very Good | Medium |
 | **Intel CPU** | ✅ Full Support | fp32 | ❌ Disabled | 🥉 Good | Low |
-| **AMD GPU** | ⚠️ Limited | fp32 | ❌ Disabled | 🥉 Fair | Medium |
+| **AMD GPU (ROCm)** | ⚠️ Limited Support | fp32 | ⚠️ Conservative | 🥉 Good | Medium |
+| **AMD MX300x** | ❌ Not Supported | fp32 | ❌ Disabled | 🔴 Poor | CPU Fallback |
 
 ## 🚀 Quick Start by Device
 
@@ -68,6 +69,24 @@ python text_to_sql_train.py --cpu-mode --max-samples 500
 
 # Minimal resource usage
 python text_to_sql_train.py --cpu-mode --max-samples 250 --base-model Salesforce/codet5p-220m
+```
+
+#### For AMD GPU Users (ROCm)
+```bash
+# Auto-detect AMD GPU (if ROCm is installed)
+python text_to_sql_train.py --device auto
+
+# Force AMD GPU mode
+python text_to_sql_train.py --device amd --max-samples 3000
+
+# AMD GPU with conservative settings
+python text_to_sql_train.py --amd-mode --max-samples 2000 --no-quantization
+```
+
+**⚠️ AMD MX300x Users**: This GPU is not officially supported by ROCm. Use CPU training instead:
+```bash
+# Recommended for MX300x
+python text_to_sql_train.py --cpu-mode --max-samples 500 --base-model Salesforce/codet5p-220m
 ```
 
 ## ⚙️ Device-Specific Optimizations
@@ -179,8 +198,10 @@ python text_to_sql_train.py --cpu-mode --max-samples 1000
 --device auto         # Auto-detect best device (default)
 --device cuda         # Force NVIDIA GPU
 --device mps          # Force Apple Silicon MPS  
+--device amd          # Force AMD GPU (ROCm required)
 --device cpu          # Force CPU
 --cpu-mode           # Enable CPU optimizations
+--amd-mode           # Enable AMD GPU optimizations
 --fast-mac           # Aggressive Mac optimizations
 --no-quantization    # Disable 4-bit quantization
 ```

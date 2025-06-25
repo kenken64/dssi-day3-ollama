@@ -7,6 +7,7 @@ Shows what devices are available and recommends optimal settings
 import torch
 import sys
 import os
+import subprocess
 
 def check_cuda():
     """Check CUDA availability and capabilities"""
@@ -93,6 +94,121 @@ def check_cpu():
     
     return True
 
+def check_amd():
+    """Check AMD GPU (ROCm/HIP) availability and capabilities"""
+    print("\n🔴 AMD GPU Detection:")
+    print("-" * 25)
+    
+    # Check for AMD GPU environment variables
+    hip_visible = os.environ.get('HIP_VISIBLE_DEVICES', None)
+    rocm_path = os.environ.get('ROCM_PATH', None)
+    
+    # Try to detect AMD GPU through various methods
+    amd_detected = False
+    
+    # Method 1: Check ROCm installation
+    try:
+        result = subprocess.run(['rocm-smi', '--showproductname'], 
+                              capture_output=True, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip():
+            amd_detected = True
+            gpu_info = result.stdout.strip()
+            print(f"✅ AMD GPU detected via ROCm: {gpu_info}")
+        else:
+            print("❌ ROCm not installed or no AMD GPU detected")
+    except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+        print("❌ ROCm tools not available (rocm-smi not found)")
+    
+    # Method 2: Check if PyTorch ROCm is available
+    try:
+        # Check if PyTorch was compiled with ROCm support
+        if hasattr(torch, 'cuda') and torch.cuda.is_available():
+            # Check if this is actually ROCm (HIP) backend
+            try:
+                device_name = torch.cuda.get_device_name(0)
+                if 'AMD' in device_name or 'Radeon' in device_name or 'gfx' in device_name:
+                    amd_detected = True
+                    print(f"✅ AMD GPU detected via PyTorch: {device_name}")
+            except:
+                pass
+    except:
+        pass
+    
+    # Method 3: Check system information for AMD GPU
+    try:
+        if sys.platform.startswith('linux'):
+            result = subprocess.run(['lspci', '-nn', '|', 'grep', '-E', '"VGA|3D"'], 
+                                  shell=True, capture_output=True, text=True, timeout=5)
+            if 'AMD' in result.stdout or 'ATI' in result.stdout:
+                amd_detected = True
+                print("✅ AMD GPU detected in system (via lspci)")
+        elif sys.platform == 'darwin':  # macOS
+            # AMD GPUs are rare on Mac, but check system_profiler
+            result = subprocess.run(['system_profiler', 'SPDisplaysDataType'], 
+                                  capture_output=True, text=True, timeout=10)
+            if 'AMD' in result.stdout or 'Radeon' in result.stdout:
+                amd_detected = True
+                print("✅ AMD GPU detected in system (via system_profiler)")
+    except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+        pass
+    
+    if amd_detected:
+        print("  💡 AMD GPU Support Status:")
+        
+        # Check ROCm installation status
+        if rocm_path:
+            print(f"    ROCM_PATH: {rocm_path}")
+        if hip_visible:
+            print(f"    HIP_VISIBLE_DEVICES: {hip_visible}")
+        else:
+            print("    HIP_VISIBLE_DEVICES: Not set (will use all devices)")
+        
+        # Check if PyTorch ROCm is installed
+        try:
+            import torch_rocm
+            print("    ✅ PyTorch ROCm support available")
+            print("    💡 Recommendation: AMD GPU training possible")
+            print("    💡 Suggested command: --device auto (with ROCm PyTorch)")
+        except ImportError:
+            print("    ⚠️  PyTorch ROCm not installed")
+            print("    💡 To install: pip install torch --index-url https://download.pytorch.org/whl/rocm6.1")
+            print("    💡 Or use CPU fallback: --cpu-mode")
+        
+        # Check for specific AMD GPU models
+        print("  💡 AMD GPU Support Notes:")
+        print("    - AMD Instinct MI200/MI300 series: Full ROCm support")
+        print("    - AMD Radeon RX 6000/7000 series: Limited ROCm support")
+        print("    - AMD MX300x series: Not officially supported by ROCm")
+        print("    - For MX300x: CPU fallback recommended")
+        print("    - Older AMD GPUs: CPU fallback recommended")
+        
+        return True
+    else:
+        print("❌ No AMD GPU detected")
+        print("  💡 If you have an AMD GPU:")
+        print("    - Install ROCm: https://rocm.docs.amd.com/")
+        print("    - Install PyTorch ROCm: pip install torch --index-url https://download.pytorch.org/whl/rocm6.1")
+        print("    - Set HIP_VISIBLE_DEVICES environment variable")
+        
+        return False
+
+def check_amd_quick():
+    """Quick AMD GPU check without printing (for recommendations)"""
+    try:
+        # Check environment variables
+        if os.environ.get('HIP_VISIBLE_DEVICES') or os.environ.get('ROCM_PATH'):
+            return True
+        
+        # Quick rocm-smi check
+        result = subprocess.run(['rocm-smi', '--showproductname'], 
+                              capture_output=True, text=True, timeout=2)
+        if result.returncode == 0 and result.stdout.strip():
+            return True
+    except:
+        pass
+    
+    return False
+
 def recommend_settings():
     """Provide overall recommendations"""
     print("\n🎯 Training Recommendations:")
@@ -100,6 +216,7 @@ def recommend_settings():
     
     has_cuda = torch.cuda.is_available()
     has_mps = torch.backends.mps.is_available()
+    has_amd = check_amd_quick()  # Use quick check to avoid duplicate output
     
     if has_cuda:
         print("🏆 BEST: Use NVIDIA GPU for fastest training")
@@ -111,7 +228,12 @@ def recommend_settings():
             if major >= 8:
                 print("   🚀 High-end GPU detected - can handle large datasets")
                 print("   Command: python text_to_sql_train.py --device cuda --max-samples 10000")
-            
+                
+    elif has_amd:
+        print("🥈 GOOD: AMD GPU detected - ROCm training possible")
+        print("   Command: python text_to_sql_train.py --device auto")
+        print("   💡 Ensure ROCm PyTorch is installed for optimal performance")
+        
     elif has_mps:
         print("🥈 GOOD: Use Apple Silicon MPS for good performance")
         print("   Command: python text_to_sql_train.py --device mps")
@@ -137,6 +259,11 @@ def show_example_commands():
             "name": "NVIDIA GPU (Basic)",
             "command": "python text_to_sql_train.py --device cuda --max-samples 5000",
             "description": "Balanced training with GPU"
+        },
+        {
+            "name": "AMD GPU (ROCm)",
+            "command": "python text_to_sql_train.py --device auto --max-samples 5000",
+            "description": "AMD GPU with ROCm acceleration"
         },
         {
             "name": "Apple Silicon Mac",
@@ -174,6 +301,7 @@ def main():
     has_cuda = check_cuda()
     has_mps = check_mps()
     has_cpu = check_cpu()
+    has_amd = check_amd()
     
     # Show recommendations
     recommend_settings()
