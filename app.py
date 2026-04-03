@@ -101,7 +101,7 @@ def init_sample_db():
     # --- products ---
     cursor.execute('''CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL,
-        stock INTEGER, created_at DATE
+        stock_quantity INTEGER, stock INTEGER, created_at DATE
     )''')
     cursor.execute('SELECT COUNT(*) FROM products')
     if cursor.fetchone()[0] == 0:
@@ -111,15 +111,15 @@ def init_sample_db():
         prices = [1299.99,29.99,45.00,599.99,149.99,79.99,199.99,39.99,24.99,14.99]
         stocks = [3,45,7,120,2,89,15,5,200,8]
         for i in range(1, 31):
-            cursor.execute('INSERT INTO products VALUES (?,?,?,?,?,?)', (
+            cursor.execute('INSERT INTO products VALUES (?,?,?,?,?,?,?)', (
                 i, pnames[i % len(pnames)], cats[i % len(cats)],
-                prices[i % len(prices)], stocks[i % len(stocks)],
+                prices[i % len(prices)], stocks[i % len(stocks)], stocks[i % len(stocks)],
                 '2024-01-01'))
 
     # --- orders ---
     cursor.execute('''CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER,
-        total_amount REAL, status TEXT, order_date DATE
+        id INTEGER PRIMARY KEY, user_id INTEGER, customer_id INTEGER, product_id INTEGER,
+        amount REAL, total_amount REAL, status TEXT, order_date DATE
     )''')
     cursor.execute('SELECT COUNT(*) FROM orders')
     if cursor.fetchone()[0] == 0:
@@ -128,9 +128,10 @@ def init_sample_db():
         older  = [f'2024-{1+(i%12):02d}-{1+(i*7)%28:02d}' for i in range(20)]
         all_dates = recent + older
         for i in range(1, 31):
-            cursor.execute('INSERT INTO orders VALUES (?,?,?,?,?,?)', (
-                i, (i % 30) + 1, (i % 30) + 1,
-                round(50 + i * 33.5, 2),
+            amt = round(50 + i * 33.5, 2)
+            cursor.execute('INSERT INTO orders VALUES (?,?,?,?,?,?,?,?)', (
+                i, (i % 30) + 1, (i % 30) + 1, (i % 30) + 1,
+                amt, amt,
                 statuses[i % len(statuses)], all_dates[i % len(all_dates)]))
 
     # --- patients ---
@@ -828,7 +829,9 @@ def test_sql():
         # Convert schema DDL to SQLite-compatible syntax
         schema_ddl = _convert_to_sqlite(schema_ddl)
 
-        # Execute all CREATE TABLE statements (skip tables already preloaded)
+        # Execute all CREATE TABLE statements
+        # Use preloaded data when available (it has carefully crafted correlations),
+        # only create new tables from schema when they don't exist in the preloaded DB.
         statements = [s.strip() for s in sqlparse.split(schema_ddl) if s.strip()]
         tables_created = []
         for stmt in statements:
@@ -838,7 +841,8 @@ def test_sql():
                     table_name = tbl_match.group(1)
                     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
                     if cursor.fetchone():
-                        # Table already preloaded — use existing data, skip creation
+                        # Table already preloaded — use existing data
+                        cursor.execute(f'SELECT COUNT(*) FROM {table_name}')
                         tables_created.append((table_name, []))
                     else:
                         cursor.execute(stmt)
@@ -847,7 +851,7 @@ def test_sql():
 
         conn.commit()
 
-        # Insert sample data only for tables that were newly created (not preloaded)
+        # Insert sample data only for newly created tables (not preloaded ones)
         sample_data_info = {}
         for table_name, columns in tables_created:
             if not columns:
