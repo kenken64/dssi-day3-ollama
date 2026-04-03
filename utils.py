@@ -311,80 +311,54 @@ class OllamaManager:
             return False
     
     def query_model(self, prompt: str, timeout: int = 60) -> Optional[str]:
-        """Query the Ollama model"""
-        try:
-            result = subprocess.run(
-                ["ollama", "run", self.model_name, prompt],
-                capture_output=True,
-                text=True,
-                timeout=timeout
-            )
-            
-            if result.returncode == 0:
-                return result.stdout.strip()
-            else:
-                logging.error(f"Query failed: {result.stderr}")
-                return None
-                
-        except subprocess.TimeoutExpired:
-            logging.error("Query timed out")
-            return None
-        except subprocess.SubprocessError as e:
-            logging.error(f"Error querying model: {e}")
-            return None
-    
+        """Query the Ollama model via REST API for clean output"""
+        return self.query_model_safe(prompt, timeout)
+
     def query_model_safe(self, prompt: str, timeout: int = 60, max_retries: int = 3) -> Optional[str]:
-        """Query the Ollama model with better error handling and token management"""
+        """Query the Ollama model via REST API (no terminal artifacts)"""
+        import urllib.request
+        import json as _json
+
+        url = "http://localhost:11434/api/generate"
+        payload = _json.dumps({
+            "model": self.model_name,
+            "prompt": prompt,
+            "stream": False,
+        }).encode("utf-8")
+
         for attempt in range(max_retries):
             try:
-                # Use a more structured prompt format
-                formatted_prompt = f"""Database Schema:
-{prompt.split('Request:')[0].strip()}
+                req = urllib.request.Request(url, data=payload,
+                    headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    data = _json.loads(resp.read().decode("utf-8"))
 
-Query Request: {prompt.split('Request:')[1].strip() if 'Request:' in prompt else prompt}
+                response = data.get("response", "").strip()
 
-Generate a SQL query for the above request. Respond with only the SQL code in a code block followed by a brief explanation."""
-                
-                result = subprocess.run(
-                    ["ollama", "run", self.model_name],
-                    input=formatted_prompt,
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout
-                )
-                
-                if result.returncode == 0:
-                    response = result.stdout.strip()
-                    
-                    # Check for token loop issue
-                    if "{ end }<|end|>" in response or response.count("<|end|>") > 5:
-                        logging.warning(f"Detected token loop in response, retrying... (attempt {attempt + 1})")
-                        if attempt < max_retries - 1:
-                            time.sleep(1)  # Brief pause before retry
-                            continue
-                        else:
-                            logging.error("Model stuck in token loop, trying fallback")
-                            return self._fallback_query(prompt)
-                    
-                    return response
-                else:
-                    logging.error(f"Query failed: {result.stderr}")
+                if not response:
+                    logging.warning(f"Empty response (attempt {attempt + 1})")
                     if attempt < max_retries - 1:
                         time.sleep(1)
                         continue
                     return None
-                    
-            except subprocess.TimeoutExpired:
-                logging.error(f"Query timed out (attempt {attempt + 1})")
+
+                # Check for token loop
+                if response.count("<|im_end|>") > 5 or response.count("<|end|>") > 5:
+                    logging.warning(f"Detected token loop, retrying... (attempt {attempt + 1})")
+                    if attempt < max_retries - 1:
+                        time.sleep(1)
+                        continue
+                    return self._fallback_query(prompt)
+
+                return response
+
+            except Exception as e:
+                logging.error(f"Ollama API error (attempt {attempt + 1}): {e}")
                 if attempt < max_retries - 1:
+                    time.sleep(1)
                     continue
                 return None
-            except subprocess.SubprocessError as e:
-                logging.error(f"Error querying model: {e}")
-                if attempt < max_retries - 1:
-                    continue
-                return None
-        
+
         return None
     
     def _fallback_query(self, prompt: str) -> str:

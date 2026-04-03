@@ -1,524 +1,437 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text-to-SQL Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        border: 'hsl(240 3.7% 15.9%)',
+                        input: 'hsl(240 3.7% 15.9%)',
+                        ring: 'hsl(240 4.9% 83.9%)',
+                        background: 'hsl(240 10% 3.9%)',
+                        foreground: 'hsl(0 0% 98%)',
+                        primary: { DEFAULT: 'hsl(0 0% 98%)', foreground: 'hsl(240 5.9% 10%)' },
+                        secondary: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(0 0% 98%)' },
+                        muted: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(240 5% 64.9%)' },
+                        accent: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(0 0% 98%)' },
+                        destructive: { DEFAULT: 'hsl(0 62.8% 30.6%)', foreground: 'hsl(0 0% 98%)' },
+                        card: { DEFAULT: 'hsl(240 10% 3.9%)', foreground: 'hsl(0 0% 98%)' },
+                    },
+                    borderRadius: { lg: '0.5rem', md: 'calc(0.5rem - 2px)', sm: 'calc(0.5rem - 4px)' },
+                }
+            }
+        }
+    </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #2D3748 0%, #4A5568 100%);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
-        
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .status-bar {
-            background: #f7fafc;
-            padding: 1rem 2rem;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ef4444;
-        }
-        
-        .status-dot.online {
-            background: #10b981;
-        }
-        
-        .main-content {
-            padding: 2rem;
-        }
-        
-        .input-section {
-            margin-bottom: 2rem;
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        label {
-            display: block;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
-        }
-        
-        textarea, input {
-            width: 100%;
-            padding: 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.2s;
-            font-family: 'Courier New', monospace;
-        }
-        
-        textarea:focus, input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .schema-input {
-            height: 200px;
-            resize: vertical;
-        }
-        
-        .query-input {
-            height: 80px;
-            resize: vertical;
-        }
-        
-        .button-group {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        
-        .btn {
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-secondary {
-            background: #f3f4f6;
-            color: #374151;
-            border: 2px solid #e5e7eb;
-        }
-        
-        .btn-secondary:hover {
-            background: #e5e7eb;
-        }
-        
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-        
-        .result-section {
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-top: 2rem;
-            display: none;
-        }
-        
-        .result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .result-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1f2937;
-        }
-        
-        .validation-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        
-        .validation-badge.valid {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .validation-badge.invalid {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .sql-output {
-            background: #1f2937;
-            color: #f9fafb;
-            padding: 1.5rem;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            margin-bottom: 1rem;
-        }
-        
-        .full-response {
-            background: white;
-            border: 1px solid #e5e7eb;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .error-message {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-            border-left: 4px solid #ef4444;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 2rem;
-        }
-        
-        .spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .examples-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .examples-link:hover {
-            text-decoration: underline;
-        }
-        
-        .copy-btn {
-            background: #374151;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.875rem;
-        }
-        
-        .copy-btn:hover {
-            background: #1f2937;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                margin: 10px;
-                border-radius: 8px;
-            }
-            
-            .header {
-                padding: 1.5rem;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .main-content {
-                padding: 1.5rem;
-            }
-            
-            .button-group {
-                flex-direction: column;
-            }
-            
-            .status-bar {
-                flex-direction: column;
-                gap: 0.5rem;
-                align-items: flex-start;
-            }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        code, .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .spinner { border: 3px solid hsl(240 3.7% 15.9%); border-top-color: hsl(240 4.9% 83.9%); border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        textarea::-webkit-scrollbar, .overflow-auto::-webkit-scrollbar { width: 6px; height: 6px; }
+        textarea::-webkit-scrollbar-track, .overflow-auto::-webkit-scrollbar-track { background: transparent; }
+        textarea::-webkit-scrollbar-thumb, .overflow-auto::-webkit-scrollbar-thumb { background: hsl(240 3.7% 25%); border-radius: 3px; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🤖 Text-to-SQL Generator</h1>
-            <p>Convert natural language queries into SQL statements using AI</p>
-        </div>
-        
-        <div class="status-bar">
-            <div class="status-indicator">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Checking status...</span>
+<body class="bg-background text-foreground min-h-screen">
+    <!-- Header -->
+    <header class="border-b border-border">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center text-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-semibold tracking-tight">Text-to-SQL</h1>
+                    <p class="text-xs text-muted-foreground">AI-powered SQL generation</p>
+                </div>
             </div>
-            <div>
-                <a href="/examples" class="examples-link">📚 View Examples</a>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 text-sm" id="statusArea">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" id="statusPing" style="background: hsl(0 62.8% 50%)"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5" id="statusDot" style="background: hsl(0 62.8% 50%)"></span>
+                    </span>
+                    <span class="text-muted-foreground text-xs" id="statusText">Checking...</span>
+                </div>
+                <a href="/examples" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Examples</a>
             </div>
         </div>
-        
-        <div class="main-content">
-            <form id="sqlForm">
-                <div class="input-section">
-                    <div class="form-group">
-                        <label for="schema">Database Schema *</label>
-                        <textarea id="schema" name="schema" class="schema-input" 
-                                placeholder="CREATE TABLE users (&#10;    id INT PRIMARY KEY,&#10;    name VARCHAR(100),&#10;    email VARCHAR(100),&#10;    created_at TIMESTAMP&#10;);" required></textarea>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Left: Input -->
+            <div class="space-y-6">
+                <!-- Schema -->
+                <div class="rounded-lg border border-border bg-card">
+                    <div class="px-4 py-3 border-b border-border">
+                        <label class="text-sm font-medium">Database Schema</label>
+                        <p class="text-xs text-muted-foreground mt-0.5">Paste your CREATE TABLE statements</p>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="query">Natural Language Query *</label>
-                        <textarea id="query" name="query" class="query-input" 
-                                placeholder="Find all users who registered in the last 30 days" required></textarea>
-                    </div>
-                    
-                    <div class="button-group">
-                        <button type="submit" class="btn btn-primary" id="generateBtn">
-                            ✨ Generate SQL
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="clearForm()">
-                            🗑️ Clear
-                        </button>
+                    <div class="p-4">
+                        <textarea id="schema" rows="10"
+                            class="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background resize-y"
+                            placeholder="Paste your CREATE TABLE statements here...">CREATE TABLE products (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    category VARCHAR(50),
+    price DECIMAL(10,2),
+    stock_quantity INT,
+    supplier_id INT
+);
+
+CREATE TABLE suppliers (
+    id INT PRIMARY KEY,
+    name VARCHAR(100),
+    contact_email VARCHAR(100),
+    city VARCHAR(50)
+);</textarea>
                     </div>
                 </div>
-            </form>
-            
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Generating SQL query...</p>
-            </div>
-            
-            <div class="result-section" id="resultSection">
-                <div class="result-header">
-                    <h3 class="result-title">Generated SQL</h3>
-                    <div>
-                        <span class="validation-badge" id="validationBadge"></span>
-                        <button class="copy-btn" onclick="copySql()">📋 Copy</button>
+
+                <!-- Query -->
+                <div class="rounded-lg border border-border bg-card">
+                    <div class="px-4 py-3 border-b border-border">
+                        <label class="text-sm font-medium">Natural Language Query</label>
+                        <p class="text-xs text-muted-foreground mt-0.5">Describe what you want to query</p>
+                    </div>
+                    <div class="p-4">
+                        <textarea id="query" rows="3"
+                            class="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background resize-y"
+                            placeholder="Describe what you want to query...">List all products that are low in stock (less than 10 items) along with their supplier contact information</textarea>
                     </div>
                 </div>
-                
-                <div class="sql-output" id="sqlOutput"></div>
-                
-                <details>
-                    <summary style="cursor: pointer; margin-bottom: 1rem;">View Full Response</summary>
-                    <div class="full-response" id="fullResponse"></div>
-                </details>
+
+                <!-- Buttons -->
+                <div class="flex gap-3">
+                    <button onclick="generateSQL()" id="generateBtn"
+                        class="inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium shadow hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:pointer-events-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        Generate SQL
+                    </button>
+                    <button onclick="clearForm()"
+                        class="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-secondary text-secondary-foreground px-4 py-2.5 text-sm font-medium hover:bg-accent transition-colors">
+                        Clear
+                    </button>
+                </div>
             </div>
-            
-            <div class="error-message" id="errorMessage" style="display: none;"></div>
+
+            <!-- Right: Results -->
+            <div class="space-y-6">
+                <!-- Loading -->
+                <div id="loading" class="hidden rounded-lg border border-border bg-card p-8 flex flex-col items-center justify-center gap-3">
+                    <div class="spinner"></div>
+                    <p class="text-sm text-muted-foreground">Generating SQL query...</p>
+                </div>
+
+                <!-- Error -->
+                <div id="errorMessage" class="hidden rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+                    <p class="text-sm text-red-400" id="errorText"></p>
+                </div>
+
+                <!-- SQL Result -->
+                <div id="resultSection" class="hidden space-y-4">
+                    <div class="rounded-lg border border-border bg-card">
+                        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-medium">Generated SQL</h3>
+                                <span id="validationBadge" class="hidden text-xs px-2 py-0.5 rounded-full font-medium"></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="copySql()" class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded border border-border hover:bg-secondary">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                    <span id="copyLabel">Copy</span>
+                                </button>
+                                <button onclick="testSql()" id="testBtn"
+                                    class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded border border-emerald-700 bg-emerald-900/50 text-emerald-300 hover:bg-emerald-800/50 transition-colors disabled:opacity-50 disabled:pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                                    Test in SQLite
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <pre class="bg-[hsl(240,10%,6%)] border border-border rounded-md p-4 text-sm font-mono text-emerald-400 overflow-x-auto whitespace-pre-wrap" id="sqlOutput"></pre>
+                        </div>
+                    </div>
+
+                    <!-- Full Response (collapsible) -->
+                    <details class="rounded-lg border border-border bg-card group">
+                        <summary class="px-4 py-3 text-sm font-medium cursor-pointer hover:bg-secondary/50 transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                            Full Model Response
+                        </summary>
+                        <div class="px-4 pb-4">
+                            <div class="bg-secondary/50 border border-border rounded-md p-4 text-sm text-muted-foreground max-h-48 overflow-y-auto whitespace-pre-wrap" id="fullResponse"></div>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Test Results -->
+                <div id="testSection" class="hidden space-y-4">
+                    <!-- Test Loading -->
+                    <div id="testLoading" class="hidden rounded-lg border border-border bg-card p-6 flex flex-col items-center gap-3">
+                        <div class="spinner"></div>
+                        <p class="text-sm text-muted-foreground">Running query against sample data...</p>
+                    </div>
+
+                    <!-- Test Error -->
+                    <div id="testError" class="hidden rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+                        <div class="flex items-center gap-2 mb-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
+                            <span class="text-sm font-medium text-red-400">Query Failed</span>
+                        </div>
+                        <p class="text-sm text-red-300/80" id="testErrorText"></p>
+                    </div>
+
+                    <!-- Test Success -->
+                    <div id="testResult" class="hidden rounded-lg border border-border bg-card">
+                        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                                <h3 class="text-sm font-medium">Query Results</h3>
+                                <span class="text-xs text-muted-foreground" id="rowCount"></span>
+                            </div>
+                            <span class="text-xs text-muted-foreground" id="tablesInfo"></span>
+                        </div>
+                        <div class="overflow-auto max-h-80">
+                            <table class="w-full text-sm" id="resultTable">
+                                <thead id="resultHead" class="bg-secondary/70 sticky top-0">
+                                </thead>
+                                <tbody id="resultBody" class="divide-y divide-border">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="noRows" class="hidden p-8 text-center">
+                            <p class="text-sm text-muted-foreground">Query executed successfully. No rows returned.</p>
+                        </div>
+                        <div id="sqlConverted" class="hidden px-4 py-3 border-t border-border">
+                            <p class="text-xs text-amber-400 mb-1 font-medium">SQL auto-converted for SQLite compatibility:</p>
+                            <pre class="text-xs font-mono text-muted-foreground whitespace-pre-wrap" id="sqlConvertedText"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
     <script>
         let currentSql = '';
-        
-        // Check status on page load
+
+        // Check status on load
         checkStatus();
-        
-        // Form submission
-        document.getElementById('sqlForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await generateSQL();
-        });
-        
+
         async function checkStatus() {
             try {
-                const response = await fetch('/api/status');
-                const data = await response.json();
-                
-                const statusDot = document.getElementById('statusDot');
-                const statusText = document.getElementById('statusText');
-                
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                const dot = document.getElementById('statusDot');
+                const ping = document.getElementById('statusPing');
+                const text = document.getElementById('statusText');
+
                 if (data.ollama_running && data.model_exists) {
-                    statusDot.classList.add('online');
-                    statusText.textContent = `✅ Ready (Model: ${data.model_name})`;
+                    dot.style.background = 'hsl(142 71% 45%)';
+                    ping.style.background = 'hsl(142 71% 45%)';
+                    text.textContent = `Ready - ${data.model_name}`;
                 } else if (data.ollama_running) {
-                    statusText.textContent = '⚠️ Ollama running, but model not found';
+                    dot.style.background = 'hsl(38 92% 50%)';
+                    ping.style.background = 'hsl(38 92% 50%)';
+                    text.textContent = 'Model not found';
                 } else {
-                    statusText.textContent = '❌ Ollama service not running';
+                    text.textContent = 'Ollama offline';
                 }
-            } catch (error) {
-                document.getElementById('statusText').textContent = '❌ Service unavailable';
+            } catch {
+                document.getElementById('statusText').textContent = 'Unavailable';
             }
         }
-        
+
         async function generateSQL() {
             const schema = document.getElementById('schema').value.trim();
             const query = document.getElementById('query').value.trim();
-            
-            if (!schema || !query) {
-                showError('Please provide both database schema and natural language query.');
-                return;
-            }
-            
-            // Show loading state
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('resultSection').style.display = 'none';
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('generateBtn').disabled = true;
-            
+            if (!schema || !query) { showError('Please provide both schema and query.'); return; }
+
+            setLoading(true);
+            hideAll();
+
             try {
-                const response = await fetch('/api/generate-sql', {
+                const res = await fetch('/api/generate-sql', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ schema, query })
                 });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showResult(data);
-                } else {
-                    showError(data.error);
-                }
-            } catch (error) {
-                showError('Network error: ' + error.message);
+                const data = await res.json();
+                if (data.success) { showResult(data); } else { showError(data.error); }
+            } catch (e) {
+                showError('Network error: ' + e.message);
             } finally {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('generateBtn').disabled = false;
+                setLoading(false);
             }
         }
-        
-        function showResult(data) {
-            const resultSection = document.getElementById('resultSection');
-            const sqlOutput = document.getElementById('sqlOutput');
-            const validationBadge = document.getElementById('validationBadge');
-            const fullResponse = document.getElementById('fullResponse');
-            
-            currentSql = data.sql_query || 'No SQL query generated';
-            sqlOutput.textContent = currentSql;
-            fullResponse.textContent = data.full_response;
-            
-            // Update validation badge
-            if (data.is_valid) {
-                validationBadge.textContent = '✅ Valid SQL';
-                validationBadge.className = 'validation-badge valid';
+
+        async function testSql() {
+            const schema = document.getElementById('schema').value.trim();
+            if (!currentSql || !schema) return;
+
+            const testSection = document.getElementById('testSection');
+            const testLoading = document.getElementById('testLoading');
+            const testError = document.getElementById('testError');
+            const testResult = document.getElementById('testResult');
+
+            testSection.classList.remove('hidden');
+            testLoading.classList.remove('hidden');
+            testError.classList.add('hidden');
+            testResult.classList.add('hidden');
+            document.getElementById('testBtn').disabled = true;
+
+            try {
+                const res = await fetch('/api/test-sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ schema, sql: currentSql, num_rows: 10 })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showTestResult(data);
+                } else {
+                    testError.classList.remove('hidden');
+                    document.getElementById('testErrorText').textContent = data.error;
+                }
+            } catch (e) {
+                testError.classList.remove('hidden');
+                document.getElementById('testErrorText').textContent = 'Network error: ' + e.message;
+            } finally {
+                testLoading.classList.add('hidden');
+                document.getElementById('testBtn').disabled = false;
+            }
+        }
+
+        function showTestResult(data) {
+            const testResult = document.getElementById('testResult');
+            const head = document.getElementById('resultHead');
+            const body = document.getElementById('resultBody');
+            const noRows = document.getElementById('noRows');
+
+            document.getElementById('rowCount').textContent = `${data.row_count} row${data.row_count !== 1 ? 's' : ''}`;
+            document.getElementById('tablesInfo').textContent = `Tables: ${data.tables_created.join(', ')}`;
+
+            head.innerHTML = '';
+            body.innerHTML = '';
+
+            if (data.row_count === 0) {
+                noRows.classList.remove('hidden');
+                document.getElementById('resultTable').classList.add('hidden');
             } else {
-                validationBadge.textContent = '❌ Invalid SQL';
-                validationBadge.className = 'validation-badge invalid';
+                noRows.classList.add('hidden');
+                document.getElementById('resultTable').classList.remove('hidden');
+
+                // Header
+                const tr = document.createElement('tr');
+                data.columns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.className = 'px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap';
+                    th.textContent = col;
+                    tr.appendChild(th);
+                });
+                head.appendChild(tr);
+
+                // Body
+                data.rows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-secondary/30 transition-colors';
+                    data.columns.forEach(col => {
+                        const td = document.createElement('td');
+                        td.className = 'px-4 py-2.5 text-sm font-mono whitespace-nowrap';
+                        const val = row[col];
+                        td.textContent = val === null ? 'NULL' : val;
+                        if (val === null) td.classList.add('text-muted-foreground', 'italic');
+                        tr.appendChild(td);
+                    });
+                    body.appendChild(tr);
+                });
             }
-            
-            resultSection.style.display = 'block';
+
+            // Show conversion note if SQL was auto-converted
+            const convertedDiv = document.getElementById('sqlConverted');
+            if (data.sqlite_sql) {
+                document.getElementById('sqlConvertedText').textContent = data.sqlite_sql;
+                convertedDiv.classList.remove('hidden');
+            } else {
+                convertedDiv.classList.add('hidden');
+            }
+
+            testResult.classList.remove('hidden');
         }
-        
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            document.getElementById('resultSection').style.display = 'none';
+
+        function showResult(data) {
+            currentSql = data.sql_query || 'No SQL query generated';
+            document.getElementById('sqlOutput').textContent = currentSql;
+            document.getElementById('fullResponse').textContent = data.full_response;
+
+            const badge = document.getElementById('validationBadge');
+            badge.classList.remove('hidden');
+            if (data.is_valid) {
+                badge.textContent = 'Valid';
+                badge.className = 'text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-900/50 text-emerald-300 border border-emerald-700';
+            } else {
+                badge.textContent = 'Invalid';
+                badge.className = 'text-xs px-2 py-0.5 rounded-full font-medium bg-red-900/50 text-red-300 border border-red-700';
+            }
+
+            document.getElementById('resultSection').classList.remove('hidden');
+            // Reset test section
+            document.getElementById('testSection').classList.add('hidden');
         }
-        
+
+        function showError(msg) {
+            document.getElementById('errorText').textContent = msg;
+            document.getElementById('errorMessage').classList.remove('hidden');
+        }
+
+        function hideAll() {
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('testSection').classList.add('hidden');
+        }
+
+        function setLoading(on) {
+            document.getElementById('loading').classList.toggle('hidden', !on);
+            document.getElementById('generateBtn').disabled = on;
+        }
+
         function clearForm() {
             document.getElementById('schema').value = '';
             document.getElementById('query').value = '';
-            document.getElementById('resultSection').style.display = 'none';
-            document.getElementById('errorMessage').style.display = 'none';
+            hideAll();
+            currentSql = '';
         }
-        
+
         async function copySql() {
-            if (currentSql) {
-                try {
-                    await navigator.clipboard.writeText(currentSql);
-                    const btn = event.target;
-                    const originalText = btn.textContent;
-                    btn.textContent = '✅ Copied!';
-                    setTimeout(() => {
-                        btn.textContent = originalText;
-                    }, 2000);
-                } catch (error) {
-                    console.error('Failed to copy:', error);
-                }
-            }
+            if (!currentSql) return;
+            try {
+                await navigator.clipboard.writeText(currentSql);
+                const label = document.getElementById('copyLabel');
+                label.textContent = 'Copied!';
+                setTimeout(() => label.textContent = 'Copy', 2000);
+            } catch {}
         }
-        
-        // Auto-resize textareas
-        document.querySelectorAll('textarea').forEach(textarea => {
-            textarea.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = this.scrollHeight + 'px';
-            });
-        });
-        
-        // Load example from localStorage if available
+
+        // Load example from examples page
         window.addEventListener('load', () => {
-            const selectedExample = localStorage.getItem('selectedExample');
-            if (selectedExample) {
+            const ex = localStorage.getItem('selectedExample');
+            if (ex) {
                 try {
-                    const example = JSON.parse(selectedExample);
-                    document.getElementById('schema').value = example.schema;
-                    document.getElementById('query').value = example.query;
-                    localStorage.removeItem('selectedExample'); // Remove after loading
-                } catch (error) {
-                    console.error('Error loading example:', error);
-                }
+                    const data = JSON.parse(ex);
+                    document.getElementById('schema').value = data.schema;
+                    document.getElementById('query').value = data.query;
+                    localStorage.removeItem('selectedExample');
+                } catch {}
             }
         });
     </script>

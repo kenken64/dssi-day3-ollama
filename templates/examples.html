@@ -1,205 +1,108 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Examples - Text-to-SQL Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        border: 'hsl(240 3.7% 15.9%)',
+                        input: 'hsl(240 3.7% 15.9%)',
+                        ring: 'hsl(240 4.9% 83.9%)',
+                        background: 'hsl(240 10% 3.9%)',
+                        foreground: 'hsl(0 0% 98%)',
+                        primary: { DEFAULT: 'hsl(0 0% 98%)', foreground: 'hsl(240 5.9% 10%)' },
+                        secondary: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(0 0% 98%)' },
+                        muted: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(240 5% 64.9%)' },
+                        accent: { DEFAULT: 'hsl(240 3.7% 15.9%)', foreground: 'hsl(0 0% 98%)' },
+                        card: { DEFAULT: 'hsl(240 10% 3.9%)', foreground: 'hsl(0 0% 98%)' },
+                    },
+                    borderRadius: { lg: '0.5rem', md: 'calc(0.5rem - 2px)', sm: 'calc(0.5rem - 4px)' },
+                }
+            }
+        }
+    </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #2D3748 0%, #4A5568 100%);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
-        
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .nav {
-            background: #f7fafc;
-            padding: 1rem 2rem;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .nav a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .nav a:hover {
-            text-decoration: underline;
-        }
-        
-        .content {
-            padding: 2rem;
-        }
-        
-        .example-card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .example-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 1rem;
-        }
-        
-        .example-section {
-            margin-bottom: 1.5rem;
-        }
-        
-        .section-label {
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
-        }
-        
-        .code-block {
-            background: #1f2937;
-            color: #f9fafb;
-            padding: 1rem;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            margin-bottom: 1rem;
-        }
-        
-        .query-text {
-            background: #e0f2fe;
-            color: #0277bd;
-            padding: 1rem;
-            border-radius: 8px;
-            font-style: italic;
-            margin-bottom: 1rem;
-        }
-        
-        .use-example-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        
-        .use-example-btn:hover {
-            background: #5a67d8;
-            transform: translateY(-1px);
-        }
-        
-        .complexity-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-left: 1rem;
-        }
-        
-        .complexity-basic {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .complexity-intermediate {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        
-        .complexity-advanced {
-            background: #fee2e2;
-            color: #991b1b;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        code, .font-mono { font-family: 'JetBrains Mono', monospace; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📚 Text-to-SQL Examples</h1>
-            <p>Sample schemas and queries to get you started</p>
+<body class="bg-background text-foreground min-h-screen">
+    <!-- Header -->
+    <header class="border-b border-border">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-semibold tracking-tight">Examples</h1>
+                    <p class="text-xs text-muted-foreground">Sample schemas and queries to get started</p>
+                </div>
+            </div>
+            <a href="/" class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                Back to Generator
+            </a>
         </div>
-        
-        <div class="nav">
-            <a href="/">← Back to Generator</a>
-        </div>
-        
-        <div class="content">
-            <!-- Basic Example -->
-            <div class="example-card">
-                <h3 class="example-title">
-                    Basic User Query
-                    <span class="complexity-badge complexity-basic">Basic</span>
-                </h3>
-                
-                <div class="example-section">
-                    <div class="section-label">Database Schema:</div>
-                    <div class="code-block">CREATE TABLE users (
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+
+        <!-- Example 1: Basic -->
+        <div class="rounded-lg border border-border bg-card overflow-hidden">
+            <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-semibold">Basic User Query</h3>
+                    <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-900/50 text-emerald-300 border border-emerald-700">Basic</span>
+                </div>
+                <button onclick="useExample(0)" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    Use Example
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Schema</p>
+                    <pre class="bg-[hsl(240,10%,6%)] border border-border rounded-md p-4 text-sm font-mono text-emerald-400 overflow-x-auto">CREATE TABLE users (
     id INT PRIMARY KEY,
     name VARCHAR(100),
     email VARCHAR(100),
     created_at TIMESTAMP,
     status VARCHAR(20)
-);</div>
+);</pre>
                 </div>
-                
-                <div class="example-section">
-                    <div class="section-label">Natural Language Query:</div>
-                    <div class="query-text">Find all active users who registered in the last 30 days</div>
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Query</p>
+                    <div class="bg-secondary/50 border border-border rounded-md px-4 py-3 text-sm text-foreground/80 italic">
+                        Find all active users who registered in the last 30 days
+                    </div>
                 </div>
-                
-                <button class="use-example-btn" onclick="useExample(0)">Use This Example</button>
             </div>
-            
-            <!-- Intermediate Example -->
-            <div class="example-card">
-                <h3 class="example-title">
-                    E-commerce Analysis
-                    <span class="complexity-badge complexity-intermediate">Intermediate</span>
-                </h3>
-                
-                <div class="example-section">
-                    <div class="section-label">Database Schema:</div>
-                    <div class="code-block">CREATE TABLE customers (
+        </div>
+
+        <!-- Example 2: Intermediate -->
+        <div class="rounded-lg border border-border bg-card overflow-hidden">
+            <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-semibold">E-commerce Analysis</h3>
+                    <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-900/50 text-amber-300 border border-amber-700">Intermediate</span>
+                </div>
+                <button onclick="useExample(1)" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    Use Example
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Schema</p>
+                    <pre class="bg-[hsl(240,10%,6%)] border border-border rounded-md p-4 text-sm font-mono text-emerald-400 overflow-x-auto">CREATE TABLE customers (
     id INT PRIMARY KEY,
     name VARCHAR(100),
     email VARCHAR(100),
@@ -213,27 +116,33 @@ CREATE TABLE orders (
     amount DECIMAL(10,2),
     order_date DATE,
     FOREIGN KEY (customer_id) REFERENCES customers(id)
-);</div>
+);</pre>
                 </div>
-                
-                <div class="example-section">
-                    <div class="section-label">Natural Language Query:</div>
-                    <div class="query-text">Show the top 5 customers by total order value, including their email and city</div>
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Query</p>
+                    <div class="bg-secondary/50 border border-border rounded-md px-4 py-3 text-sm text-foreground/80 italic">
+                        Show the top 5 customers by total order value, including their email and city
+                    </div>
                 </div>
-                
-                <button class="use-example-btn" onclick="useExample(1)">Use This Example</button>
             </div>
-            
-            <!-- Advanced Example -->
-            <div class="example-card">
-                <h3 class="example-title">
-                    Sales Analytics with Date Functions
-                    <span class="complexity-badge complexity-advanced">Advanced</span>
-                </h3>
-                
-                <div class="example-section">
-                    <div class="section-label">Database Schema:</div>
-                    <div class="code-block">CREATE TABLE employees (
+        </div>
+
+        <!-- Example 3: Advanced -->
+        <div class="rounded-lg border border-border bg-card overflow-hidden">
+            <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-semibold">Sales Analytics with Date Functions</h3>
+                    <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-red-900/50 text-red-300 border border-red-700">Advanced</span>
+                </div>
+                <button onclick="useExample(2)" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    Use Example
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Schema</p>
+                    <pre class="bg-[hsl(240,10%,6%)] border border-border rounded-md p-4 text-sm font-mono text-emerald-400 overflow-x-auto">CREATE TABLE employees (
     id INT PRIMARY KEY,
     name VARCHAR(100),
     department VARCHAR(50),
@@ -248,27 +157,33 @@ CREATE TABLE sales (
     sale_date DATE,
     region VARCHAR(50),
     FOREIGN KEY (employee_id) REFERENCES employees(id)
-);</div>
+);</pre>
                 </div>
-                
-                <div class="example-section">
-                    <div class="section-label">Natural Language Query:</div>
-                    <div class="query-text">Calculate monthly sales totals for each region in 2024, showing percentage growth compared to the previous month</div>
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Query</p>
+                    <div class="bg-secondary/50 border border-border rounded-md px-4 py-3 text-sm text-foreground/80 italic">
+                        Calculate monthly sales totals for each region in 2024, showing percentage growth compared to the previous month
+                    </div>
                 </div>
-                
-                <button class="use-example-btn" onclick="useExample(2)">Use This Example</button>
             </div>
-            
-            <!-- Healthcare Example -->
-            <div class="example-card">
-                <h3 class="example-title">
-                    Healthcare Database
-                    <span class="complexity-badge complexity-intermediate">Intermediate</span>
-                </h3>
-                
-                <div class="example-section">
-                    <div class="section-label">Database Schema:</div>
-                    <div class="code-block">CREATE TABLE patients (
+        </div>
+
+        <!-- Example 4: Healthcare -->
+        <div class="rounded-lg border border-border bg-card overflow-hidden">
+            <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-semibold">Healthcare Database</h3>
+                    <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-900/50 text-amber-300 border border-amber-700">Intermediate</span>
+                </div>
+                <button onclick="useExample(3)" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    Use Example
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Schema</p>
+                    <pre class="bg-[hsl(240,10%,6%)] border border-border rounded-md p-4 text-sm font-mono text-emerald-400 overflow-x-auto">CREATE TABLE patients (
     id INT PRIMARY KEY,
     name VARCHAR(100),
     date_of_birth DATE,
@@ -284,27 +199,33 @@ CREATE TABLE appointments (
     status VARCHAR(20),
     notes TEXT,
     FOREIGN KEY (patient_id) REFERENCES patients(id)
-);</div>
+);</pre>
                 </div>
-                
-                <div class="example-section">
-                    <div class="section-label">Natural Language Query:</div>
-                    <div class="query-text">Find all patients who have upcoming appointments this week and are over 65 years old</div>
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Query</p>
+                    <div class="bg-secondary/50 border border-border rounded-md px-4 py-3 text-sm text-foreground/80 italic">
+                        Find all patients who have upcoming appointments this week and are over 65 years old
+                    </div>
                 </div>
-                
-                <button class="use-example-btn" onclick="useExample(3)">Use This Example</button>
             </div>
-            
-            <!-- Inventory Example -->
-            <div class="example-card">
-                <h3 class="example-title">
-                    Inventory Management
-                    <span class="complexity-badge complexity-basic">Basic</span>
-                </h3>
-                
-                <div class="example-section">
-                    <div class="section-label">Database Schema:</div>
-                    <div class="code-block">CREATE TABLE products (
+        </div>
+
+        <!-- Example 5: Inventory -->
+        <div class="rounded-lg border border-border bg-card overflow-hidden">
+            <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-semibold">Inventory Management</h3>
+                    <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-900/50 text-emerald-300 border border-emerald-700">Basic</span>
+                </div>
+                <button onclick="useExample(4)" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    Use Example
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Schema</p>
+                    <pre class="bg-[hsl(240,10%,6%)] border border-border rounded-md p-4 text-sm font-mono text-emerald-400 overflow-x-auto">CREATE TABLE products (
     id INT PRIMARY KEY,
     name VARCHAR(100),
     category VARCHAR(50),
@@ -318,111 +239,45 @@ CREATE TABLE suppliers (
     name VARCHAR(100),
     contact_email VARCHAR(100),
     city VARCHAR(50)
-);</div>
+);</pre>
                 </div>
-                
-                <div class="example-section">
-                    <div class="section-label">Natural Language Query:</div>
-                    <div class="query-text">List all products that are low in stock (less than 10 items) along with their supplier contact information</div>
+                <div>
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Query</p>
+                    <div class="bg-secondary/50 border border-border rounded-md px-4 py-3 text-sm text-foreground/80 italic">
+                        List all products that are low in stock (less than 10 items) along with their supplier contact information
+                    </div>
                 </div>
-                
-                <button class="use-example-btn" onclick="useExample(4)">Use This Example</button>
             </div>
         </div>
-    </div>
+
+    </main>
 
     <script>
         const examples = [
             {
-                schema: `CREATE TABLE users (
-    id INT PRIMARY KEY,
-    name VARCHAR(100),
-    email VARCHAR(100),
-    created_at TIMESTAMP,
-    status VARCHAR(20)
-);`,
+                schema: `CREATE TABLE users (\n    id INT PRIMARY KEY,\n    name VARCHAR(100),\n    email VARCHAR(100),\n    created_at TIMESTAMP,\n    status VARCHAR(20)\n);`,
                 query: "Find all active users who registered in the last 30 days"
             },
             {
-                schema: `CREATE TABLE customers (
-    id INT PRIMARY KEY,
-    name VARCHAR(100),
-    email VARCHAR(100),
-    city VARCHAR(50)
-);
-
-CREATE TABLE orders (
-    id INT PRIMARY KEY,
-    customer_id INT,
-    product_name VARCHAR(100),
-    amount DECIMAL(10,2),
-    order_date DATE,
-    FOREIGN KEY (customer_id) REFERENCES customers(id)
-);`,
+                schema: `CREATE TABLE customers (\n    id INT PRIMARY KEY,\n    name VARCHAR(100),\n    email VARCHAR(100),\n    city VARCHAR(50)\n);\n\nCREATE TABLE orders (\n    id INT PRIMARY KEY,\n    customer_id INT,\n    product_name VARCHAR(100),\n    amount DECIMAL(10,2),\n    order_date DATE,\n    FOREIGN KEY (customer_id) REFERENCES customers(id)\n);`,
                 query: "Show the top 5 customers by total order value, including their email and city"
             },
             {
-                schema: `CREATE TABLE employees (
-    id INT PRIMARY KEY,
-    name VARCHAR(100),
-    department VARCHAR(50),
-    hire_date DATE,
-    salary DECIMAL(10,2)
-);
-
-CREATE TABLE sales (
-    id INT PRIMARY KEY,
-    employee_id INT,
-    sale_amount DECIMAL(10,2),
-    sale_date DATE,
-    region VARCHAR(50),
-    FOREIGN KEY (employee_id) REFERENCES employees(id)
-);`,
+                schema: `CREATE TABLE employees (\n    id INT PRIMARY KEY,\n    name VARCHAR(100),\n    department VARCHAR(50),\n    hire_date DATE,\n    salary DECIMAL(10,2)\n);\n\nCREATE TABLE sales (\n    id INT PRIMARY KEY,\n    employee_id INT,\n    sale_amount DECIMAL(10,2),\n    sale_date DATE,\n    region VARCHAR(50),\n    FOREIGN KEY (employee_id) REFERENCES employees(id)\n);`,
                 query: "Calculate monthly sales totals for each region in 2024, showing percentage growth compared to the previous month"
             },
             {
-                schema: `CREATE TABLE patients (
-    id INT PRIMARY KEY,
-    name VARCHAR(100),
-    date_of_birth DATE,
-    gender VARCHAR(10),
-    phone VARCHAR(20)
-);
-
-CREATE TABLE appointments (
-    id INT PRIMARY KEY,
-    patient_id INT,
-    doctor_name VARCHAR(100),
-    appointment_date DATETIME,
-    status VARCHAR(20),
-    notes TEXT,
-    FOREIGN KEY (patient_id) REFERENCES patients(id)
-);`,
+                schema: `CREATE TABLE patients (\n    id INT PRIMARY KEY,\n    name VARCHAR(100),\n    date_of_birth DATE,\n    gender VARCHAR(10),\n    phone VARCHAR(20)\n);\n\nCREATE TABLE appointments (\n    id INT PRIMARY KEY,\n    patient_id INT,\n    doctor_name VARCHAR(100),\n    appointment_date DATETIME,\n    status VARCHAR(20),\n    notes TEXT,\n    FOREIGN KEY (patient_id) REFERENCES patients(id)\n);`,
                 query: "Find all patients who have upcoming appointments this week and are over 65 years old"
             },
             {
-                schema: `CREATE TABLE products (
-    id INT PRIMARY KEY,
-    name VARCHAR(100),
-    category VARCHAR(50),
-    price DECIMAL(10,2),
-    stock_quantity INT,
-    supplier_id INT
-);
-
-CREATE TABLE suppliers (
-    id INT PRIMARY KEY,
-    name VARCHAR(100),
-    contact_email VARCHAR(100),
-    city VARCHAR(50)
-);`,
+                schema: `CREATE TABLE products (\n    id INT PRIMARY KEY,\n    name VARCHAR(100),\n    category VARCHAR(50),\n    price DECIMAL(10,2),\n    stock_quantity INT,\n    supplier_id INT\n);\n\nCREATE TABLE suppliers (\n    id INT PRIMARY KEY,\n    name VARCHAR(100),\n    contact_email VARCHAR(100),\n    city VARCHAR(50)\n);`,
                 query: "List all products that are low in stock (less than 10 items) along with their supplier contact information"
             }
         ];
-        
+
         function useExample(index) {
-            const example = examples[index];
-            localStorage.setItem('selectedExample', JSON.stringify(example));
+            localStorage.setItem('selectedExample', JSON.stringify(examples[index]));
             window.location.href = '/';
         }
     </script>

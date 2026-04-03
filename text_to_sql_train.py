@@ -6,6 +6,10 @@
 
 # Standard library imports for file operations, JSON handling, logging, and command-line arguments
 import os
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+
+# Use ModelScope mirror for faster downloads (especially from Singapore/Asia)
+USE_MODELSCOPE = True
 import json
 import logging
 import argparse
@@ -25,7 +29,7 @@ from transformers import (
     AutoTokenizer,  # Automatic tokenizer loading
     TrainingArguments,  # Configuration for training parameters
     Trainer,  # High-level training API
-    DataCollatorForLanguageModeling,  # Data collation for language modeling
+    DataCollatorForLanguageModeling,  # Data collation for causal language modeling
     BitsAndBytesConfig  # Configuration for quantization
 )
 
@@ -64,9 +68,9 @@ class TextToSQLConfig:
     """
     
     def __init__(self):
-        # Model configuration - using smaller CodeLlama model by default for better compatibility
-        # CodeLlama-7b-Instruct is specifically designed for code generation tasks
-        self.base_model_name = "codellama/CodeLlama-7b-Instruct-hf"  # Smaller than defog/sqlcoder-7b
+        # Model configuration - using Qwen2.5-Coder-0.5B for fast training and small footprint
+        # Qwen2.5-Coder is a decoder-only model designed for code understanding and generation
+        self.base_model_name = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
         self.model_output_dir = "./text-to-sql-model"  # Temporary training outputs
         self.final_model_dir = "./text-to-sql-final"   # Final model location
         
@@ -518,36 +522,50 @@ class TextToSQLDataset(Dataset):
     def __getitem__(self, idx):
         """
         Get a single tokenized sample for training.
-        
-        Combines instruction, input, and output into a single text sequence
-        that the model learns to generate through causal language modeling.
-        
+
+        For causal LM: combines input and output into a single sequence,
+        masking the input portion in labels so loss is only computed on the output.
+
         Args:
             idx: Index of the sample to retrieve
-            
+
         Returns:
             Dict containing input_ids, attention_mask, and labels for training
         """
         item = self.dataset[idx]
-        
-        # Combine all parts into a single training sequence
-        # The model learns to generate the entire sequence, with the output
-        # being the "ground truth" it should produce
-        full_text = f"{item['instruction']}\n\n{item['input']}\n\n{item['output']}"
-        
-        # Tokenize the complete sequence with proper padding and truncation
+
+        # For causal LM: combine instruction, input, and output into one sequence
+        prompt_text = f"{item['instruction']}\n\n{item['input']}\n\n### Response:\n"
+        full_text = prompt_text + item['output'] + self.tokenizer.eos_token
+
+        # Tokenize the full sequence
         encoding = self.tokenizer(
             full_text,
-            truncation=True,              # Cut off at max_length if too long
-            max_length=self.max_length,   # Consistent sequence lengths
-            padding="max_length",         # Pad short sequences to max_length
-            return_tensors="pt"           # Return PyTorch tensors
+            truncation=True,
+            max_length=self.max_length,
+            padding="max_length",
+            return_tensors="pt"
         )
-        
+
+        # Tokenize prompt only to find where the output starts
+        prompt_encoding = self.tokenizer(
+            prompt_text,
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt"
+        )
+        prompt_len = prompt_encoding["input_ids"].shape[1]
+
+        # Create labels: mask the prompt portion with -100 so loss is only on output
+        labels = encoding["input_ids"].clone().flatten()
+        labels[:prompt_len] = -100
+        # Also mask padding tokens
+        labels[labels == self.tokenizer.pad_token_id] = -100
+
         return {
-            "input_ids": encoding["input_ids"].flatten(),      # Token IDs for the model
-            "attention_mask": encoding["attention_mask"].flatten(), # Mask for padding tokens
-            "labels": encoding["input_ids"].flatten()          # Labels = input_ids for causal LM
+            "input_ids": encoding["input_ids"].flatten(),
+            "attention_mask": encoding["attention_mask"].flatten(),
+            "labels": labels
         }
 
 class ModelTrainer:
@@ -717,7 +735,19 @@ class ModelTrainer:
             device_type: Target device type ("auto", "cpu", "cuda", "mps")
         """
         logger.info(f"Loading model: {self.config.base_model_name}")
-        
+
+        # Use ModelScope to download model for faster speeds from Asia/Singapore
+        model_path = self.config.base_model_name
+        if USE_MODELSCOPE:
+            try:
+                from modelscope import snapshot_download
+                logger.info(f"Downloading model via ModelScope: {self.config.base_model_name}")
+                model_path = snapshot_download(self.config.base_model_name)
+                logger.info(f"ModelScope download complete: {model_path}")
+            except Exception as e:
+                logger.warning(f"ModelScope download failed: {e}, falling back to HuggingFace")
+                model_path = self.config.base_model_name
+
         # Configure quantization based on device capabilities
         bnb_config = None
         if self.config.use_4bit and device_type != "cpu":
@@ -750,7 +780,7 @@ class ModelTrainer:
         
         # Load tokenizer with proper configuration
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.config.base_model_name,
+            model_path,
             trust_remote_code=True  # Allow custom tokenizer code if needed
         )
         
@@ -787,7 +817,7 @@ class ModelTrainer:
             
             # Attempt model loading with optimal settings
             self.model = AutoModelForCausalLM.from_pretrained(
-                self.config.base_model_name,
+                model_path,
                 quantization_config=bnb_config,   # Apply quantization if configured
                 device_map=device_map,            # Device placement strategy
                 trust_remote_code=True,           # Allow custom model code
@@ -803,7 +833,7 @@ class ModelTrainer:
                 logger.warning(f"Failed to load model with quantization: {e}")
                 logger.info("Retrying without quantization...")
                 self.model = AutoModelForCausalLM.from_pretrained(
-                    self.config.base_model_name,
+                    model_path,
                     device_map=device_map,
                     trust_remote_code=True,
                     torch_dtype=torch_dtype,
@@ -815,7 +845,7 @@ class ModelTrainer:
                 logger.warning(f"Standard loading failed: {e}")
                 logger.info("Trying most compatible settings...")
                 self.model = AutoModelForCausalLM.from_pretrained(
-                    self.config.base_model_name,
+                    model_path,
                     trust_remote_code=True,
                     torch_dtype=torch.float32  # Most compatible precision
                 )
@@ -988,10 +1018,10 @@ class ModelTrainer:
         
         logger.info(f"Training configuration: fp16={use_fp16}, bf16={use_bf16}, device={device_type}")
         
-        # Data collator
+        # Data collator for causal language modeling
         data_collator = DataCollatorForLanguageModeling(
             tokenizer=self.tokenizer,
-            mlm=False
+            mlm=False  # Causal LM, not masked LM
         )
         
         # Trainer - Updated to avoid deprecation warning
@@ -1054,9 +1084,9 @@ class ModelTrainer:
                         pad_token_id=self.tokenizer.eos_token_id
                     )
                 
-                # Decode response
-                generated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-                generated_sql = generated_text[len(prompt):].strip()
+                # Decode response (causal LM output includes input tokens, so slice them off)
+                generated_tokens = outputs[0][inputs["input_ids"].shape[1]:]
+                generated_sql = self.tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
                 
                 results.append({
                     "test_case": i + 1,
@@ -1084,13 +1114,18 @@ class OllamaDeployer:
     def get_ollama_base_model(self):
         """Map Hugging Face model names to Ollama model names"""
         hf_to_ollama_mapping = {
-            "codellama/CodeLlama-7b-Instruct-hf": "codellama:7b",  # Changed to base version
+            "codellama/CodeLlama-7b-Instruct-hf": "codellama:7b",
             "codellama/CodeLlama-7b-hf": "codellama:7b",
             "codellama/CodeLlama-13b-Instruct-hf": "codellama:13b",
-            "defog/sqlcoder-7b": "codellama:7b",  # Use base version
-            "Salesforce/codet5p-770m": "codellama:7b",  # Use base version
-            "Salesforce/codet5p-220m": "codellama:7b",  # Use base version
-            "microsoft/CodeBERT-base": "codellama:7b",  # Use base version
+            "defog/sqlcoder-7b": "codellama:7b",
+            "defog/sqlcoder-7b-2": "codellama:7b",
+            "Qwen/Qwen2.5-Coder-1.5B-Instruct": "qwen2.5-coder:1.5b",
+            "Qwen/Qwen2.5-Coder-0.5B-Instruct": "qwen2.5-coder:0.5b",
+            "Qwen/Qwen2.5-Coder-3B-Instruct": "qwen2.5-coder:3b",
+            "Qwen/Qwen2.5-Coder-7B-Instruct": "qwen2.5-coder:7b",
+            "Salesforce/codet5p-770m": "codellama:7b",
+            "Salesforce/codet5p-220m": "codellama:7b",
+            "microsoft/CodeBERT-base": "codellama:7b",
         }
         
         base_model = self.config.base_model_name
@@ -1117,8 +1152,8 @@ PARAMETER temperature 0.1
 PARAMETER top_p 0.9
 PARAMETER top_k 40
 PARAMETER repeat_penalty 1.1
+PARAMETER stop "<|im_end|>"
 PARAMETER stop "<|endoftext|>"
-PARAMETER stop "</s>"
 
 # System prompt for SQL generation
 SYSTEM \"\"\"You are an expert SQL query generator. Given a natural language question and database schema context, generate accurate SQL queries.
@@ -1139,16 +1174,13 @@ Format your response as:
 Explanation: [Brief explanation of the query logic and any important considerations]
 \"\"\"
 
-# Template for conversations
-TEMPLATE \"\"\"{{ if .System }}<|system|>
-{{ .System }}<|end|>
-{{ end }}{{ if .Prompt }}<|user|>
-Database Schema:
-{{ .Prompt }}
-
-Generate the SQL query for the above request.<|end|>
-{{ end }}<|assistant|>
-{{ .Response }}<|end|>
+# Template for conversations (Qwen2.5 ChatML format)
+TEMPLATE \"\"\"{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+<|im_start|>assistant
+{{ .Response }}<|im_end|>
 \"\"\"
 """
         

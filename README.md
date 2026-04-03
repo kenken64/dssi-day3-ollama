@@ -22,11 +22,15 @@ A comprehensive pipeline for training and deploying text-to-SQL models using the
 ## 🚀 Features
 
 - **Complete Training Pipeline**: Fine-tune models on the Gretel AI synthetic text-to-SQL dataset
-- **Multiple Base Models**: Support for CodeLlama, SQLCoder, and other popular models
+- **Multiple Base Models**: Support for Qwen2.5-Coder, CodeLlama, SQLCoder, and other popular models
 - **Efficient Training**: Uses LoRA (Low-Rank Adaptation) for memory-efficient fine-tuning
 - **Intelligent Model Adaptation**: Auto-detects LoRA target modules for any model architecture
-- **Ollama Integration**: Deploy models locally with Ollama for fast inference
+- **Ollama Integration**: Deploy models locally with Ollama for fast inference (REST API)
 - **Memory Optimized**: Smart adapter-only saving reduces file sizes by 100x (50MB vs 13GB)
+- **Web Application**: Dark-themed shadcn/Tailwind UI with live SQL generation and SQLite testing
+- **SQLite Test Execution**: Auto-generates sample data, converts MySQL/PostgreSQL syntax to SQLite, and runs queries in-browser
+- **SQL Dialect Converter**: Automatic conversion of `NOW()`, `INTERVAL`, `DATE_FORMAT()`, `TIMESTAMPDIFF()`, `EXTRACT()`, `LAG()` and more to SQLite
+- **Model Transfer Tool**: Export/import models as zip files for offline transfer between machines
 - **Comprehensive Testing**: Built-in test suite with performance benchmarks
 - **Domain Coverage**: Supports 25+ domains including healthcare, finance, e-commerce
 - **SQL Complexity**: Handles basic queries to complex joins, subqueries, and window functions
@@ -171,12 +175,31 @@ CREATE TABLE employees (id INT, name VARCHAR(50), department VARCHAR(30), salary
 Request: Find all employees in the Engineering department with salary above 75000"
 ```
 
-### Interactive Demo
+### Web Application (Recommended)
 ```bash
-# NEW: Web interface (recommended)
+# Start the web interface
 python start_webapp.py
 
-# Or command line demo
+# Open http://localhost:5000 in your browser
+# Features:
+#   - Dark-themed UI (shadcn/Tailwind)
+#   - 5 built-in example schemas (Basic, E-commerce, Sales Analytics, Healthcare, Inventory)
+#   - "Test in SQLite" - auto-generates sample data and runs your query
+#   - Auto-converts MySQL/PostgreSQL syntax to SQLite for testing
+#   - Auto-fixes hallucinated table joins
+```
+
+### Model Transfer (Export/Import)
+```bash
+# Export model + adapter + Modelfile to a zip for another machine
+python model_transfer.py export -o qwen2.5-coder-0.5b-text-to-sql.zip
+
+# Import on target machine
+python model_transfer.py import qwen2.5-coder-0.5b-text-to-sql.zip
+```
+
+### Command Line Demo
+```bash
 python deploy.py --demo
 ```
 
@@ -641,32 +664,32 @@ This project includes comprehensive documentation for all aspects of text-to-SQL
 ```
 dssi-day3-ollama/
 ├── 📄 Core Scripts
-│   ├── text_to_sql_train.py      # Main training pipeline (fully commented)
-│   ├── app.py                    # Web application
-│   ├── deployment_script.py      # Ollama deployment
-│   └── start_webapp.py          # Web app launcher
-├── 📚 Documentation
-│   ├── README.md                 # This file - main overview
-│   ├── SCRIPT_FLOW_DIAGRAM.md    # Complete execution flow
-│   ├── DEVICE_SUPPORT.md         # Hardware optimization guide
-│   ├── WEBAPP.md                 # Web app setup & deployment
-│   ├── DEPLOYMENT.md             # Ollama deployment guide
-│   ├── ASSESSMENT.md             # Practical exercises & evaluation
-│   ├── OLLAMA_TOKEN_FIX.md       # Troubleshooting token issues
-│   └── text_to_sql_ollama_guide.md # Original background guide
-├── 🛠️ Utilities
-│   ├── utils.py                  # Helper functions
-│   ├── check_device.py           # Device capability detection
-│   ├── fix_ollama_tokens.py      # Token loop fix
-│   └── test_ollama_model.py      # Model testing
+│   ├── text_to_sql_train.py      # Main training pipeline (Qwen2.5-Coder + LoRA)
+│   ├── app.py                    # Flask web app with SQL dialect converter & SQLite testing
+│   ├── start_webapp.py           # Web app launcher
+│   ├── model_transfer.py         # Export/import models as zip for offline transfer
+│   └── deployment_script.py      # Ollama deployment
 ├── 🌐 Web Interface
-│   ├── templates/                # HTML templates
-│   ├── static/                   # CSS, JS, images
-│   └── Dockerfile.webapp         # Web app containerization
-└── ⚙️ Configuration
-    ├── config.yaml               # Training configuration
-    ├── requirements.txt          # Python dependencies
-    └── Modelfile                 # Ollama model configuration
+│   ├── templates/
+│   │   ├── index.html            # Main page (dark shadcn/Tailwind UI)
+│   │   ├── examples.html         # 5 example schemas with "Use Example" buttons
+│   │   ├── 404.html              # Not found page
+│   │   └── 500.html              # Server error page
+│   └── static/                   # CSS, JS, images
+├── 🛠️ Utilities
+│   ├── utils.py                  # OllamaManager (REST API), SQLValidator, helpers
+│   ├── check_device.py           # Device capability detection
+│   └── test_ollama_model.py      # Model testing
+├── ⚙️ Configuration
+│   ├── Modelfile                 # Ollama model config (Qwen2.5 ChatML, LAG() guidance)
+│   ├── config.yaml               # Training configuration
+│   └── requirements.txt          # Python dependencies
+└── 📚 Documentation
+    ├── README.md                 # This file
+    ├── SCRIPT_FLOW_DIAGRAM.md    # Complete execution flow
+    ├── DEVICE_SUPPORT.md         # Hardware optimization guide
+    ├── WEBAPP.md                 # Web app setup & deployment
+    └── DEPLOYMENT.md             # Ollama deployment guide
 ```
 
 ### 🎯 **Documentation Journey Guide**
