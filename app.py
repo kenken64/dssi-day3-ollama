@@ -25,6 +25,161 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this'  # Change in production
 
+DB_PATH = 'sample.db'
+
+def init_sample_db():
+    """Create and preload sample.db with common tables and realistic data at startup."""
+    from datetime import datetime, timedelta
+    now = datetime.now()
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # --- users ---
+    cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY, name TEXT, email TEXT, status TEXT,
+        created_at DATE, age INTEGER, phone TEXT, city TEXT, country TEXT
+    )''')
+    cursor.execute('SELECT COUNT(*) FROM users')
+    if cursor.fetchone()[0] == 0:
+        statuses = ['active', 'inactive', 'active', 'pending', 'active']
+        cities = ['New York', 'London', 'Tokyo', 'Singapore', 'Sydney', 'Berlin', 'Paris', 'Toronto', 'Dubai', 'Seoul']
+        names = ['Alice Johnson','Bob Smith','Charlie Brown','Diana Lee','Eve Wilson',
+                 'Frank Garcia','Grace Kim','Hank Miller','Ivy Chen','Jack Davis']
+        recent = [(now - timedelta(days=d)).strftime('%Y-%m-%d') for d in [1,3,5,7,10,14,18,21,25,29]]
+        older  = [(now - timedelta(days=d)).strftime('%Y-%m-%d') for d in [35,60,90,120,180,270,365,400,500,600]]
+        for i in range(1, 31):
+            dt = recent[(i-1) % len(recent)] if i % 3 != 0 else older[(i-1) % len(older)]
+            cursor.execute('INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)', (
+                i, names[i % len(names)],
+                f"{names[i % len(names)].split()[0].lower()}@example.com",
+                statuses[i % len(statuses)], dt,
+                25 + (i * 3) % 50, f"+1-555-{100+i:03d}-0000",
+                cities[i % len(cities)], 'US'))
+
+    # --- employees ---
+    cursor.execute('''CREATE TABLE IF NOT EXISTS employees (
+        id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL,
+        hire_date DATE, age INTEGER, email TEXT, status TEXT
+    )''')
+    cursor.execute('SELECT COUNT(*) FROM employees')
+    if cursor.fetchone()[0] == 0:
+        depts = ['Engineering','Marketing','Sales','HR','Finance','Operations','Support','Design','Legal','Product']
+        names = ['Alice Johnson','Bob Smith','Charlie Brown','Diana Lee','Eve Wilson',
+                 'Frank Garcia','Grace Kim','Hank Miller','Ivy Chen','Jack Davis']
+        salaries = [55000,72000,48000,95000,63000,81000,45000,110000,67000,58000]
+        hire_dates_2024 = [(datetime(2024, 1+i%12, 1+(i*7)%28)).strftime('%Y-%m-%d') for i in range(30)]
+        for i in range(1, 31):
+            cursor.execute('INSERT INTO employees VALUES (?,?,?,?,?,?,?,?)', (
+                i, names[i % len(names)], depts[i % len(depts)],
+                salaries[i % len(salaries)], hire_dates_2024[i-1],
+                28 + (i * 2) % 35, f"emp{i}@company.com", 'active'))
+
+    # --- sales ---
+    cursor.execute('''CREATE TABLE IF NOT EXISTS sales (
+        id INTEGER PRIMARY KEY, region TEXT, sale_amount REAL,
+        sale_date DATE, product TEXT, salesperson TEXT
+    )''')
+    cursor.execute('SELECT COUNT(*) FROM sales')
+    if cursor.fetchone()[0] == 0:
+        regions = ['North','South','East','West','Central']
+        products = ['Laptop Pro','Wireless Mouse','USB-C Hub','Monitor 27"','Keyboard MX']
+        amounts = [1200.00,89.99,45.00,599.99,149.99,2500.00,320.00,75.50,999.00,199.99]
+        dates_2024 = [
+            '2024-01-10','2024-01-25','2024-02-08','2024-02-22','2024-03-05',
+            '2024-03-19','2024-04-03','2024-04-17','2024-05-01','2024-05-15',
+            '2024-06-07','2024-06-21','2024-07-04','2024-07-18','2024-08-02',
+            '2024-08-16','2024-09-06','2024-09-20','2024-10-11','2024-10-25',
+            '2024-11-08','2024-11-22','2024-12-06','2024-12-20',
+            '2024-01-15','2024-03-30','2024-06-15','2024-08-20','2024-10-05','2024-12-10',
+        ]
+        for i in range(1, 31):
+            cursor.execute('INSERT INTO sales VALUES (?,?,?,?,?,?)', (
+                i, regions[i % len(regions)], amounts[i % len(amounts)],
+                dates_2024[i-1], products[i % len(products)], f"Rep{i}"))
+
+    # --- products ---
+    cursor.execute('''CREATE TABLE IF NOT EXISTS products (
+        id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL,
+        stock INTEGER, created_at DATE
+    )''')
+    cursor.execute('SELECT COUNT(*) FROM products')
+    if cursor.fetchone()[0] == 0:
+        cats = ['Electronics','Clothing','Books','Food','Toys','Sports','Home','Garden','Tools','Beauty']
+        pnames = ['Laptop Pro','Wireless Mouse','USB-C Hub','Monitor 27"','Keyboard MX',
+                  'Webcam HD','Headphones','Desk Lamp','Phone Stand','Cable Kit']
+        prices = [1299.99,29.99,45.00,599.99,149.99,79.99,199.99,39.99,24.99,14.99]
+        stocks = [3,45,7,120,2,89,15,5,200,8]
+        for i in range(1, 31):
+            cursor.execute('INSERT INTO products VALUES (?,?,?,?,?,?)', (
+                i, pnames[i % len(pnames)], cats[i % len(cats)],
+                prices[i % len(prices)], stocks[i % len(stocks)],
+                '2024-01-01'))
+
+    # --- orders ---
+    cursor.execute('''CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY, user_id INTEGER, product_id INTEGER,
+        total_amount REAL, status TEXT, order_date DATE
+    )''')
+    cursor.execute('SELECT COUNT(*) FROM orders')
+    if cursor.fetchone()[0] == 0:
+        statuses = ['completed','pending','shipped','cancelled','completed']
+        recent = [(now - timedelta(days=d)).strftime('%Y-%m-%d') for d in [1,3,5,7,10,14,18,21,25,29]]
+        older  = [f'2024-{1+(i%12):02d}-{1+(i*7)%28:02d}' for i in range(20)]
+        all_dates = recent + older
+        for i in range(1, 31):
+            cursor.execute('INSERT INTO orders VALUES (?,?,?,?,?,?)', (
+                i, (i % 30) + 1, (i % 30) + 1,
+                round(50 + i * 33.5, 2),
+                statuses[i % len(statuses)], all_dates[i % len(all_dates)]))
+
+    # --- patients ---
+    cursor.execute('''CREATE TABLE IF NOT EXISTS patients (
+        id INTEGER PRIMARY KEY, name TEXT, date_of_birth DATE,
+        gender TEXT, phone TEXT, email TEXT, city TEXT
+    )''')
+    cursor.execute('SELECT COUNT(*) FROM patients')
+    if cursor.fetchone()[0] == 0:
+        names = ['Alice Johnson','Bob Smith','Charlie Brown','Diana Lee','Eve Wilson',
+                 'Frank Garcia','Grace Kim','Hank Miller','Ivy Chen','Jack Davis']
+        # Mix of ages: half elderly (>65), half younger
+        birth_years = [1945,1950,1955,1958,1942,1948,1953,1960,1938,1965,
+                       1980,1985,1990,1995,1978,1972,1968,1975,1982,1988,
+                       1944,1951,1956,1963,1940,1947,1954,1961,1970,1976]
+        genders = ['Male','Female']
+        for i in range(1, 31):
+            yr = birth_years[i-1]
+            cursor.execute('INSERT INTO patients VALUES (?,?,?,?,?,?,?)', (
+                i, names[i % len(names)],
+                f"{yr}-{1+(i*3)%12:02d}-{1+(i*7)%28:02d}",
+                genders[i % 2], f"+1-555-{200+i:03d}-0000",
+                f"patient{i}@health.com", 'New York'))
+
+    # --- appointments ---
+    cursor.execute('''CREATE TABLE IF NOT EXISTS appointments (
+        id INTEGER PRIMARY KEY, patient_id INTEGER, doctor TEXT,
+        appointment_date DATE, status TEXT, notes TEXT
+    )''')
+    cursor.execute('SELECT COUNT(*) FROM appointments')
+    if cursor.fetchone()[0] == 0:
+        doctors = ['Dr. Smith','Dr. Lee','Dr. Garcia','Dr. Chen','Dr. Wilson']
+        statuses = ['Scheduled','Completed','Upcoming','Cancelled','Upcoming']
+        # Mix: some upcoming (next 7 days), some past
+        future_dates = [(now + timedelta(days=d)).strftime('%Y-%m-%d') for d in [1,2,3,4,5,6,7,1,2,3]]
+        past_dates   = [(now - timedelta(days=d)).strftime('%Y-%m-%d') for d in [1,5,10,15,20,30,45,60,90,120]]
+        all_dates = future_dates + past_dates
+        for i in range(1, 31):
+            # Link first 15 appointments to elderly patients (id 1-10 have birth_years < 1960)
+            patient_id = (i % 10) + 1 if i <= 15 else (i % 30) + 1
+            cursor.execute('INSERT INTO appointments VALUES (?,?,?,?,?,?)', (
+                i, patient_id, doctors[i % len(doctors)],
+                all_dates[i % len(all_dates)],
+                statuses[i % len(statuses)], 'Routine checkup'))
+
+    conn.commit()
+    conn.close()
+    logger.info(f"Sample database initialized at {DB_PATH}")
+
 # Initialize Ollama manager
 try:
     ollama_manager = OllamaManager("text-to-sql")
@@ -271,10 +426,14 @@ def _generate_sample_value(col_name, col_type, row_idx=1, num_rows=10):
     if any(kw in col_name_lower for kw in ['is_', 'has_', 'enabled', 'flag']):
         return row_idx % 2
 
-    # Date/time types - spread across 2024 and recent dates for useful query results
+    # Date/time types - spread across recent, past year, and future dates
     if any(t in col_type_upper for t in ['DATE', 'TIME', 'STAMP']) or \
        any(kw in col_name_lower for kw in ['date', 'created', 'updated', 'ordered', 'hired']):
-        # 2024 dates covering all 12 months for analytics queries
+        now = datetime.now()
+        # Recent dates within last 30 days for "last N days" queries
+        recent_offsets = [1, 3, 5, 7, 10, 14, 18, 21, 25, 29]
+        recent_dates = [(now - timedelta(days=d)).strftime('%Y-%m-%d') for d in recent_offsets]
+        # 2024 dates covering all 12 months for year-based analytics queries
         dates_2024 = [
             '2024-01-10', '2024-01-25', '2024-02-08', '2024-02-22', '2024-03-05',
             '2024-03-19', '2024-04-03', '2024-04-17', '2024-05-01', '2024-05-15',
@@ -283,12 +442,13 @@ def _generate_sample_value(col_name, col_type, row_idx=1, num_rows=10):
             '2024-11-08', '2024-11-22', '2024-12-06', '2024-12-20',
         ]
         # Future dates for "upcoming" queries
-        now = datetime.now()
         future_offsets = [1, 2, 3, 5, 7, 10, 4, 6, 8, 14]
         future_dates = [(now + timedelta(days=d)).strftime('%Y-%m-%d') for d in future_offsets]
-        # Every 3rd row gets a future date, rest get 2024 (2:1 ratio for rich 2024 data)
-        if row_idx % 3 == 0:
+        # Distribution: 30% recent, 50% 2024, 20% future
+        if row_idx % 5 == 0:
             dt_str = future_dates[row_idx % len(future_dates)]
+        elif row_idx % 10 in (1, 4, 7):
+            dt_str = recent_dates[row_idx % len(recent_dates)]
         else:
             dt_str = dates_2024[row_idx % len(dates_2024)]
         if any(t in col_type_upper for t in ['TIME', 'STAMP']):
@@ -657,31 +817,43 @@ def test_sql():
         if not schema_ddl or not sql_query:
             return jsonify({'success': False, 'error': 'Schema and SQL query are required'})
 
+        # Start from a copy of the preloaded persistent DB so all common tables have data
+        src = sqlite3.connect(DB_PATH)
         conn = sqlite3.connect(':memory:')
+        src.backup(conn)
+        src.close()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
         # Convert schema DDL to SQLite-compatible syntax
         schema_ddl = _convert_to_sqlite(schema_ddl)
 
-        # Execute all CREATE TABLE statements
+        # Execute all CREATE TABLE statements (skip tables already preloaded)
         statements = [s.strip() for s in sqlparse.split(schema_ddl) if s.strip()]
         tables_created = []
         for stmt in statements:
             if stmt.upper().startswith('CREATE'):
-                cursor.execute(stmt)
-                # Extract table name
                 tbl_match = re.search(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)', stmt, re.IGNORECASE)
                 if tbl_match:
                     table_name = tbl_match.group(1)
-                    columns = _parse_columns_from_ddl(stmt)
-                    tables_created.append((table_name, columns))
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+                    if cursor.fetchone():
+                        # Table already preloaded — use existing data, skip creation
+                        tables_created.append((table_name, []))
+                    else:
+                        cursor.execute(stmt)
+                        columns = _parse_columns_from_ddl(stmt)
+                        tables_created.append((table_name, columns))
 
         conn.commit()
 
-        # Insert sample data for each table
+        # Insert sample data only for tables that were newly created (not preloaded)
         sample_data_info = {}
         for table_name, columns in tables_created:
+            if not columns:
+                cursor.execute(f'SELECT COUNT(*) FROM {table_name}')
+                sample_data_info[table_name] = cursor.fetchone()[0]
+                continue
             col_names = [c[0] for c in columns]
             rows_inserted = 0
             for row_idx in range(1, num_rows + 1):
@@ -819,6 +991,9 @@ if __name__ == '__main__':
         logger.error(f"Failed to initialize Ollama manager with model '{args.model_name}': {e}")
         ollama_manager = None
     
+    # Preload SQLite sample database
+    init_sample_db()
+
     # Check if templates directory exists
     if not os.path.exists('templates'):
         os.makedirs('templates')
