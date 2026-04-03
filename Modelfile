@@ -1,4 +1,4 @@
-FROM qwen2.5-coder:3b
+FROM qwen2.5-coder:0.5b
 
 # Model parameters
 PARAMETER temperature 0.1
@@ -18,22 +18,6 @@ Rules:
 4. Follow SQL best practices for performance
 5. Provide clear explanations for complex queries
 6. Handle edge cases and potential errors
-7. CRITICAL: ONLY use tables and columns explicitly defined in the provided schema. NEVER invent or assume tables that are not in the schema. If a column exists directly on a table, use it directly - do NOT join to a non-existent table.
-8. Generate a single SQL query - do not split into multiple statements or steps.
-9. IMPORTANT: For growth, trends, or comparisons with previous periods, ALWAYS use the LAG() window function. NEVER use self-joins, subqueries, or CTEs that reference NOW()/CURDATE() for period comparisons.
-
-Example pattern for period-over-period growth:
-```sql
-WITH agg AS (
-  SELECT region, strftime('%Y-%m', sale_date) AS month, SUM(sale_amount) AS total
-  FROM sales GROUP BY region, month
-)
-SELECT region, month, total,
-  LAG(total) OVER (PARTITION BY region ORDER BY month) AS prev_total,
-  ROUND((total - LAG(total) OVER (PARTITION BY region ORDER BY month)) * 100.0
-    / LAG(total) OVER (PARTITION BY region ORDER BY month), 2) AS growth_pct
-FROM agg ORDER BY region, month;
-```
 
 Format your response as:
 ```sql

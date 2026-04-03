@@ -122,6 +122,8 @@ class TextToSQLConfig:
             "enable_grad_checkpointing": True,  # Save memory for larger models
             "faster_evaluation": 500,     # More frequent evaluation since GPU can handle it
             "use_flash_attention": True,  # Advanced attention optimization (if available)
+            "reduced_max_length": 256,    # Shorter sequences for faster training on 8GB VRAM
+            "fewer_epochs": 1,            # Single epoch sufficient for LoRA fine-tuning
         }
         
         # AMD GPU (ROCm/HIP) optimizations for AMD Radeon and Instinct cards
@@ -201,17 +203,22 @@ class TextToSQLConfig:
         # Leverage GPU memory and compute power with larger batches
         self.batch_size = self.nvidia_optimizations["larger_batch_size"]
         self.gradient_accumulation_steps = max(1, self.gradient_accumulation_steps // 2)
-        
+
         # Enable gradient checkpointing for memory efficiency with large models
         if self.nvidia_optimizations["enable_grad_checkpointing"]:
             self.use_gradient_checkpointing = True
-            
+
+        # Reduce sequence length and epochs for faster training on consumer 8GB VRAM GPUs
+        self.max_length = self.nvidia_optimizations["reduced_max_length"]
+        self.num_epochs = self.nvidia_optimizations["fewer_epochs"]
+
         # More frequent evaluation since GPU can handle the computational overhead
         eval_steps = self.nvidia_optimizations["faster_evaluation"]
-        
+
         logger.info(f"NVIDIA optimizations applied: batch_size={self.batch_size}, "
                    f"grad_accum={self.gradient_accumulation_steps}, "
-                   f"eval_steps={eval_steps}, checkpointing={self.use_gradient_checkpointing}")
+                   f"eval_steps={eval_steps}, checkpointing={self.use_gradient_checkpointing}, "
+                   f"max_length={self.max_length}, epochs={self.num_epochs}")
                    
         # GPU users can benefit from full dataset training
         if self.max_samples is None:
