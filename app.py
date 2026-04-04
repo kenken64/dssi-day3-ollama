@@ -271,6 +271,19 @@ def _generate_sample_value(col_name, col_type, row_idx=1, num_rows=10):
     if any(kw in col_name_lower for kw in ['is_', 'has_', 'enabled', 'flag']):
         return row_idx % 2
 
+    # created_at / updated_at / registered - use recent dates so "last N days" queries work
+    if any(kw in col_name_lower for kw in ['created', 'updated', 'registered', 'signed_up', 'joined']):
+        now = datetime.now()
+        # Spread across last 60 days so some are within 30 days and some aren't
+        offsets = [-2, -45, -5, -35, -10, -50, -1, -25, -15, -55,
+                   -3, -40, -7, -30, -12, -48, -4, -20, -8, -42,
+                   -6, -38, -9, -28, -14, -52, -3, -22, -11, -46]
+        offset = offsets[row_idx % len(offsets)]
+        dt = now + timedelta(days=offset)
+        if any(t in col_type_upper for t in ['TIME', 'STAMP']):
+            return dt.strftime('%Y-%m-%d %H:%M:%S')
+        return dt.strftime('%Y-%m-%d')
+
     # Date/time types - spread across 2024 and recent dates for useful query results
     if any(t in col_type_upper for t in ['DATE', 'TIME', 'STAMP']) or \
        any(kw in col_name_lower for kw in ['date', 'created', 'updated', 'ordered', 'hired']):
